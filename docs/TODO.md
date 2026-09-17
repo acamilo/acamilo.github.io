@@ -18,10 +18,10 @@ still the 2021 one.
   two dice-roller videos). Write pages or leave them out.
 - **Dark scheme.** The paper surface is light only. The old site followed the system
   setting. Decide whether a dark paper variant is wanted.
-- **Push.** Repo Settings > Pages > Source has to be set to "GitHub Actions" before the
-  workflow in `.github/workflows/deploy.yml` can deploy. The existing `acamilo.github.io`
-  repo holds the old Hugo build; decide whether to replace its history or push this as a
-  new default branch.
+- **Push.** Local `main` is prepared for content work. No remote is configured.
+  Inspect and integrate with the existing `acamilo.github.io` repository history, then
+  set Settings > Pages > Source to "GitHub Actions" before publishing. See
+  `docs/CONTENT.md` for the deployment handoff.
 
 ## Design
 
@@ -31,22 +31,32 @@ still the 2021 one.
   home page as a demonstration of the index or as the page transition into a project. A
   full-window crosshair with an X/Y readout in the Boards status bar is a related option.
 - Boards zone entries with landscape photos have a lot of empty ground under the text.
-- About page title block has an empty cell at top right (no Id field on that page).
-- Log index on small screens hides the Rev and Date columns; the date should stay. Its
-  title block Id reads "1/1", which means nothing.
-- Code blocks in posts: the Shiki theme is overridden locally with `!important` in the
-  post page. Set a light theme in `astro.config.mjs` instead.
 - View transitions: carry the board color from the index plate into the project sheet.
 
 ## Build
 
-- A few photo originals around 4 MB are copied into `dist/` next to their resized
-  versions. Check what links to them (the lightbox target should be a generated image
-  capped around 2600px, not the original).
-- `og:image` should be a generated 1200px-wide image from `hero`.
+- Astro still emits the roughly 4 MB `2021-06-20` original into `dist/_astro/`,
+  despite no reference in generated HTML, JS, CSS or XML. Investigate asset emission.
+  Responsive project photos and lightbox targets are now capped at 2600px; photo
+  fallbacks use WebP. Social images are generated JPEGs capped at 1200px.
 - `_site/` and `.jekyll-cache/` are root-owned leftovers from the Docker Jekyll preview.
   `sudo rm -rf _site .jekyll-cache` removes them. Both are gitignored.
-- Link check over `dist/` before the first push.
+- Re-run the local link check before the first push (passed on 2026-09-17).
+
+## Verified polish pass, 2026-09-17
+
+- Home portrait sits to the left of the title and introduction, spanning both on desktop.
+- Deployment requires a successful type/template check as well as the build.
+- About and log title blocks fill the title row when no Id or adjacent Date is present.
+- Mobile log index keeps Date visible; removed its meaningless `1/1` Id.
+- Markdown uses Shiki's `github-light` theme, with the token-color overrides removed.
+- Shared responsive image widths cap delivery at 2600px without upscaling.
+- `npm run check` and `npm run build` pass. Existing diagnostics: deprecated `z`
+  re-export hints, plus the three missing project years listed above.
+- Browser checks: all 20 HTML pages, 82 local URLs, representative layouts at
+  375/768/1440px with no horizontal overflow, mobile dates, title-block span,
+  lightbox opening/next/Escape, and no JavaScript errors.
+- Preview available locally at `http://127.0.0.1:4176` during this session.
 
 ## Project page
 

@@ -92,6 +92,10 @@ manual dispatch. Repo Settings > Pages > Source must be set to "GitHub Actions"
 for this to work. Nothing is pushed or deployed automatically from a local
 checkout.
 
+The build job also runs `npm run check`; deployment requires both the Astro build
+and type/template diagnostics to succeed. See `docs/CONTENT.md` for the writing
+workflow and the first-deployment handoff.
+
 ## Structure
 
 | Path | What |
@@ -113,4 +117,5 @@ checkout.
 
 - `docs/DESIGN.md`: the design system (paper and board surfaces, KiCad vocabulary, color interpolation) and the rules behind it.
 - `docs/TODO.md`: open items, including what has to happen before the first push.
+- `docs/CONTENT.md`: post/project templates and the publishing workflow.
 - `src/components/README.md`: component props and the data attributes `src/scripts/mask.ts` reads.

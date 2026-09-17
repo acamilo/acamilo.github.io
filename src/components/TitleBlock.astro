@@ -82,7 +82,7 @@ type Cell = {
 };
 
 const cells: Cell[] = [];
-if (title) cells.push({ label: 'Title', value: title, span: 4, kind: 'big', field: 'title' });
+if (title) cells.push({ label: 'Title', value: title, span: id || (date !== undefined && !forText) ? 4 : 6, kind: 'big', field: 'title' });
 if (id) cells.push({ label: 'Id', value: id, span: 2, kind: 'num', field: 'id' });
 if (forText) cells.push({ label: 'For', value: forText, span: mask || date ? 4 : 6, field: 'for' });
 if (date !== undefined) cells.push({ label: 'Date', value: String(date), span: 2, kind: 'num', field: 'date' });

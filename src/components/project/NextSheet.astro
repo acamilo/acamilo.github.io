@@ -16,6 +16,7 @@
 //   fields  values for the page's live title block (they must not change here)
 //   sizes   <img> sizes for the hero
 import { Picture } from 'astro:assets';
+import { imageWidths } from '../../lib/image-widths';
 import Zone from '../Zone.astro';
 import type { Sheet } from '../../lib/projects';
 
@@ -33,9 +34,7 @@ const {
   sizes = '(min-width: 861px) min(52vw, 760px), calc(100vw - 2rem)',
 } = Astro.props;
 
-const candidates = [480, 800, 1300, 1920, 2600];
-const widths = candidates.filter((w) => w <= next.hero.width);
-if (!widths.includes(next.hero.width)) widths.push(next.hero.width);
+const widths = imageWidths(next.hero.width);
 
 const portrait = next.hero.height > next.hero.width;
 ---
@@ -67,10 +66,10 @@ const portrait = next.hero.height > next.hero.width;
     <Picture
       src={next.hero}
       formats={['avif', 'webp']}
+      fallbackFormat="webp"
       widths={widths}
       sizes={sizes}
-      width={next.hero.width}
-      height={next.hero.height}
+      width={Math.min(next.hero.width, 2600)}
       alt={next.entry.data.hero_alt ?? `${next.entry.data.title} photo`}
       loading="lazy"
       style={`view-transition-name: plate-${next.id}`}

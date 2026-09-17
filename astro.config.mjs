@@ -8,4 +8,7 @@ export default defineConfig({
     format: 'directory',
   },
   integrations: [sitemap()],
+  markdown: {
+    shikiConfig: { theme: 'github-light' },
+  },
 });

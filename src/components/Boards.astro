@@ -17,6 +17,7 @@
 //   letter  zone letter, default "C"
 //   sizes   <img> sizes for the entry photos
 import { Picture } from 'astro:assets';
+import { imageWidths as widthsFor } from '../lib/image-widths';
 import Zone from './Zone.astro';
 import TitleBlock from './TitleBlock.astro';
 import type { Sheet } from '../lib/projects';
@@ -33,12 +34,6 @@ const {
   sizes = '(min-width: 861px) min(52vw, 780px), calc(100vw - 2rem)',
 } = Astro.props;
 
-const candidates = [480, 800, 1300, 1920, 2600];
-const widthsFor = (w: number): number[] => {
-  const list = candidates.filter((c) => c <= w);
-  if (!list.includes(w)) list.push(w);
-  return list;
-};
 const first = sheets[0];
 ---
 
@@ -81,10 +76,10 @@ const first = sheets[0];
             <Picture
               src={s.hero}
               formats={['avif', 'webp']}
+              fallbackFormat="webp"
               widths={widthsFor(s.hero.width)}
               sizes={sizes}
-              width={s.hero.width}
-              height={s.hero.height}
+              width={Math.min(s.hero.width, 2600)}
               alt={s.entry.data.hero_alt ?? `${s.entry.data.title} photo`}
               loading={i === 0 ? 'eager' : 'lazy'}
             />

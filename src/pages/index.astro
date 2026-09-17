@@ -7,6 +7,8 @@ import ProjectIndex from '../components/ProjectIndex.astro';
 import Boards from '../components/Boards.astro';
 import TitleBlock from '../components/TitleBlock.astro';
 import { getSheets, getLogEntries } from '../lib/projects';
+import { Picture } from 'astro:assets';
+import authorPhoto from '../assets/img/about/author.jpg';
 
 const sheets = await getSheets();
 const logEntries = await getLogEntries();
@@ -20,11 +22,20 @@ const featured = sheets.filter((s) => s.entry.data.featured);
   bare
 >
   <Zone letter="A" as="header" first>
-    <div class="head">
+    <div class="intro-grid">
+      <Picture
+        class="portrait"
+        src={authorPhoto}
+        formats={['avif', 'webp']}
+        widths={[160, 220, authorPhoto.width]}
+        sizes="(max-width: 540px) 80px, (max-width: 860px) 140px, 180px"
+        width={authorPhoto.width}
+        height={authorPhoto.height}
+        alt="Alex Camilo"
+        loading="eager"
+      />
       <h1 class="name">Alex Camilo</h1>
-      <Nav />
-    </div>
-    <div class="six head-body">
+      <div class="intro-nav"><Nav /></div>
       <p class="intro lead">
         I'm an electrical engineer in Worcester, MA. I design circuit boards and write the
         firmware that runs on them: motor drivers for MRI-compatible surgical robots,
@@ -65,17 +76,48 @@ const featured = sheets.filter((s) => s.entry.data.featured);
 </Sheet>
 
 <style>
-  .head-body {
-    margin-top: 1.5rem;
+  .intro-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 180px) minmax(0, 1fr) minmax(0, 0.8fr);
+    gap: 1.5rem var(--gap);
     align-items: start;
   }
 
+  .intro-grid > :global(picture) {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    position: relative;
+  }
+
+  .intro-grid :global(.portrait) {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 1px solid var(--fg);
+  }
+
+  .name {
+    grid-column: 2;
+  }
+
+  .intro-nav {
+    grid-column: 3;
+    justify-self: end;
+    align-self: center;
+  }
+
   .intro {
-    grid-column: 1 / 5;
+    grid-column: 2;
+    grid-row: 2;
   }
 
   .head-rev {
-    grid-column: 5 / 7;
+    grid-column: 3;
+    grid-row: 2;
   }
 
   .zone-block {
@@ -89,8 +131,36 @@ const featured = sheets.filter((s) => s.entry.data.featured);
   }
 
   @media (max-width: 860px) {
+    .intro-grid > :global(picture) {
+      grid-row: 1 / 3;
+      position: static;
+    }
+
+    .intro-grid :global(.portrait) {
+      position: static;
+      height: auto;
+    }
+
+    .intro-grid {
+      grid-template-columns: 140px minmax(0, 1fr);
+      gap: 1rem;
+    }
+
+    .intro-nav {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: start;
+    }
+
+    .intro {
+      grid-column: 1 / -1;
+      grid-row: 3;
+    }
+
     .head-rev {
-      margin-top: 1.5rem;
+      grid-column: 1 / -1;
+      grid-row: 4;
+      margin-top: 0.5rem;
     }
 
     .zone-block {
@@ -99,6 +169,24 @@ const featured = sheets.filter((s) => s.entry.data.featured);
 
     .zone-block :global(.tb) {
       margin-top: 0;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .intro-grid {
+      grid-template-columns: 80px minmax(0, 1fr);
+    }
+
+    .intro-grid > :global(picture) {
+      grid-row: 1;
+    }
+
+    .name {
+      align-self: center;
+    }
+
+    .intro-nav {
+      grid-column: 1 / -1;
     }
   }
 </style>

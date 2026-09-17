@@ -45,7 +45,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 let ogImageURL: string | undefined;
 if (ogImage) {
-  const optimized = await getImage({ src: ogImage, width: Math.min(1200, ogImage.width) });
+  const optimized = await getImage({ src: ogImage, width: Math.min(1200, ogImage.width), format: 'jpeg' });
   ogImageURL = new URL(optimized.src, Astro.site).toString();
 }
 

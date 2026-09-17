@@ -12,6 +12,7 @@
 //   sheets  Sheet[] from getSheets()
 //   sizes   <img> sizes for the plate photo (default assumes half the sheet)
 import { Picture } from 'astro:assets';
+import { imageWidths as widthsFor } from '../lib/image-widths';
 import type { Sheet } from '../lib/projects';
 import { deepMask } from '../scripts/mask';
 
@@ -22,12 +23,6 @@ export interface Props {
 
 const { sheets, sizes = '(min-width: 861px) min(44vw, 660px), 1px' } = Astro.props;
 
-const candidates = [480, 800, 1300, 1920, 2600];
-const widthsFor = (w: number): number[] => {
-  const list = candidates.filter((c) => c <= w);
-  if (!list.includes(w)) list.push(w);
-  return list;
-};
 const first = sheets[0];
 ---
 
@@ -103,10 +98,10 @@ const first = sheets[0];
                   class="plate-img"
                   src={s.hero}
                   formats={['avif', 'webp']}
+                  fallbackFormat="webp"
                   widths={widthsFor(s.hero.width)}
                   sizes={sizes}
-                  width={s.hero.width}
-                  height={s.hero.height}
+                  width={Math.min(s.hero.width, 2600)}
                   alt={s.entry.data.hero_alt ?? `${s.entry.data.title} photo`}
                   loading={i === 0 ? 'eager' : 'lazy'}
                   style={`view-transition-name: plate-${s.id}`}

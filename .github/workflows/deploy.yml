@@ -27,6 +27,8 @@ jobs:
         uses: withastro/action@v6
         with:
           node-version: 24
+      - name: Check types and templates
+        run: npm run check
 
   deploy:
     needs: build

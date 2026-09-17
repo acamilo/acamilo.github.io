@@ -188,23 +188,12 @@ const fullDate = entry.data.date.toLocaleDateString('en-US', {
     margin-top: 0.75rem;
   }
 
-  /* Shiki (Astro's default Markdown code highlighter) sets its own dark
-     theme via inline styles on <pre> and every token <span>, which would
-     otherwise punch a dark box into the paper surface. Flatten it back to
-     plain ink-on-grid: inline styles win over an ordinary selector, so
-     these need !important. */
+  /* Token colors and the light background come from the configured Shiki theme. */
   .post-body :global(pre) {
     margin: 0;
     padding: 1rem;
     overflow-x: auto;
-    background: var(--grid) !important;
-    color: var(--fg) !important;
     border: 1px solid var(--rule);
-  }
-
-  .post-body :global(pre span) {
-    color: var(--fg) !important;
-    background: none !important;
   }
 
   .post-body :global(pre code) {

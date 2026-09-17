@@ -60,7 +60,6 @@ const iso = (d: Date): string => d.toISOString().slice(0, 10);
   <Zone letter="C" as="footer" class="zone-block">
     <TitleBlock
       title="Log"
-      id={`${logEntries.length}/${logEntries.length}`}
       sheet="/log/"
       file="src/pages/log/index.astro"
       extra={[
@@ -132,13 +131,8 @@ const iso = (d: Date): string => d.toISOString().slice(0, 10);
 
   @media (max-width: 860px) {
     .log-th:nth-child(1),
-    .log-th:nth-child(2),
-    .log-cell.log-num {
+    .log-cell:nth-child(1) {
       display: none;
-    }
-
-    .log-entry {
-      display: block;
     }
 
     .zone-block {

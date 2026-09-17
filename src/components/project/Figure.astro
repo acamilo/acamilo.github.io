@@ -18,6 +18,7 @@
 //   vt       view-transition-name for the photo (the hero carries the index
 //            plate's name, so the plate photo flies into Fig. 1)
 import { Picture, getImage } from 'astro:assets';
+import { imageWidths } from '../../lib/image-widths';
 import type { ProjectFigure } from './pack';
 
 export interface Props {
@@ -35,9 +36,7 @@ export interface Props {
 const { figure, sizes, grow, beside = false, loading = 'lazy', vt } = Astro.props;
 const { media, no, caption, alt, ar, natWidth, natHeight } = figure;
 
-const candidates = [480, 800, 1300, 1920, 2600];
-const widths = candidates.filter((w) => w <= natWidth);
-if (!widths.includes(natWidth)) widths.push(natWidth);
+const widths = imageWidths(natWidth);
 
 // the file the lightbox (and a no-JS click) opens: the largest copy we make
 let full: { src: string; width: number; height: number } | undefined;
@@ -66,10 +65,10 @@ const style = `--ar:${ar.toFixed(4)};--natw:${natWidth}px;--grow:${grow.toFixed(
         <Picture
           src={media.image}
           formats={['avif', 'webp']}
+          fallbackFormat="webp"
           widths={widths}
           sizes={sizes}
-          width={natWidth}
-          height={natHeight}
+          width={Math.min(natWidth, 2600)}
           alt={alt}
           loading={loading}
           style={vt ? `view-transition-name: ${vt}` : undefined}

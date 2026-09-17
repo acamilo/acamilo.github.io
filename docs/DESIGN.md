@@ -76,8 +76,10 @@ Use these where they carry information, nowhere else.
 
 ## Images and video
 
-- No image is ever rendered wider than its intrinsic width. `Media.astro` builds
-  avif/webp `srcset`s with widths capped at the source width.
+- No image is ever rendered wider than its intrinsic width. Project figures, index
+  plates, boards and next-sheet images share `src/lib/image-widths.ts`: AVIF/WebP
+  `srcset`s capped at the source width or 2600px, whichever is smaller. Their fallback
+  images and lightbox targets use WebP; social previews use JPEG capped at 1200px.
 - The 371px `image` previews are thumbnails only (186 CSS px or less). Panels, boards and
   OG images use `hero`.
 - Videos are re-encoded to 720p H.264 in `public/media/` with a poster frame next to the
