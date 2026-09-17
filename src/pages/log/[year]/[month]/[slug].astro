@@ -1,0 +1,250 @@
+---
+import Sheet from '../../../../layouts/Sheet.astro';
+import Zone from '../../../../components/Zone.astro';
+import Nav from '../../../../components/Nav.astro';
+import TitleBlock from '../../../../components/TitleBlock.astro';
+import { getLogEntries } from '../../../../lib/projects';
+import { render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const logEntries = await getLogEntries();
+  return logEntries.map((l) => ({
+    params: { year: l.year, month: l.month, slug: l.slug },
+    props: { logEntry: l, logEntries },
+  }));
+}
+
+const { logEntry, logEntries } = Astro.props;
+const { entry, year, month, slug, rev } = logEntry;
+const { Content } = await render(entry);
+
+// logEntries is newest first, so the entry before it in the array is newer,
+// and the entry after it is older.
+const idx = logEntries.findIndex((l) => l.entry.id === entry.id);
+const newer = idx > 0 ? logEntries[idx - 1] : undefined;
+const older = idx < logEntries.length - 1 ? logEntries[idx + 1] : undefined;
+
+const iso = entry.data.date.toISOString().slice(0, 10);
+// timeZone: 'UTC' keeps this in sync with the UTC-midnight Date that
+// z.coerce.date() produces from the "YYYY-MM-DD" front matter, so the
+// printed date never shifts a day earlier in local timezones behind UTC.
+const fullDate = entry.data.date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+---
+
+<Sheet title={entry.data.title} description={entry.data.description}>
+  <Zone letter="A" as="header" first>
+    <div class="head">
+      <Nav current="log" brand="Alex Camilo" />
+    </div>
+  </Zone>
+
+  <main id="main">
+    <Zone letter="B" as="article">
+      <h1>{entry.data.title}</h1>
+      <p class="post-meta">
+        <span class="post-rev">Rev {rev}</span>
+        <time class="post-date" datetime={iso}>{fullDate}</time>
+      </p>
+
+      <div class="prose post-body">
+        <Content />
+      </div>
+    </Zone>
+
+    <Zone letter="C" aria-label="Post navigation">
+      {
+        (older || newer) && (
+          <div class="post-nav">
+            {older && (
+              <a class="post-nav-link" href={older.url}>
+                <span class="post-nav-label">Previous</span>
+                <span class="post-nav-title">{older.entry.data.title}</span>
+              </a>
+            )}
+            {newer && (
+              <a class="post-nav-link post-nav-next" href={newer.url}>
+                <span class="post-nav-label">Next</span>
+                <span class="post-nav-title">{newer.entry.data.title}</span>
+              </a>
+            )}
+          </div>
+        )
+      }
+      <p><a href="/log/">All log entries</a></p>
+    </Zone>
+  </main>
+
+  <Zone letter="D" as="footer" class="zone-block">
+    <TitleBlock
+      title={entry.data.title}
+      sheet={`/log/${year}/${month}/${slug}/`}
+      file={`src/content/log/${entry.id}.md`}
+      date={fullDate}
+      extra={[{ label: 'Rev', value: rev, span: 2 }]}
+    />
+  </Zone>
+</Sheet>
+
+<style>
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin-top: 0.75rem;
+    font-family: var(--font-num);
+    font-size: 0.88rem;
+    color: var(--label);
+  }
+
+  .post-body {
+    margin-top: 1.5rem;
+  }
+
+  .post-nav {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1.5rem;
+  }
+
+  .post-nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rule);
+    text-decoration: none;
+  }
+
+  .post-nav-next {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .post-nav-label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--label);
+    margin-bottom: 0.25rem;
+  }
+
+  .post-nav-title {
+    display: block;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: var(--mark);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+  }
+
+  .zone-block {
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .zone-block :global(.tb) {
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .post-nav {
+      grid-template-columns: 1fr;
+    }
+
+    .post-nav-next {
+      grid-column: 1;
+      text-align: left;
+    }
+
+    .zone-block {
+      display: block;
+    }
+
+    .zone-block :global(.tb) {
+      margin-top: 0;
+    }
+  }
+
+  /* Prose styles for Markdown-rendered post bodies. global.css only covers
+     the basics (h2/h3/ul/ol/code/img); this page adds blockquote, pre, hr and
+     table since those tags only appear here. */
+  .post-body :global(blockquote) {
+    margin: 0;
+    padding: 0.25rem 0 0.25rem 1rem;
+    border-left: 3px solid var(--mark);
+    color: var(--fg-dim);
+    font-style: italic;
+  }
+
+  .post-body :global(blockquote p) {
+    margin: 0;
+  }
+
+  .post-body :global(blockquote p + p) {
+    margin-top: 0.75rem;
+  }
+
+  /* Shiki (Astro's default Markdown code highlighter) sets its own dark
+     theme via inline styles on <pre> and every token <span>, which would
+     otherwise punch a dark box into the paper surface. Flatten it back to
+     plain ink-on-grid: inline styles win over an ordinary selector, so
+     these need !important. */
+  .post-body :global(pre) {
+    margin: 0;
+    padding: 1rem;
+    overflow-x: auto;
+    background: var(--grid) !important;
+    color: var(--fg) !important;
+    border: 1px solid var(--rule);
+  }
+
+  .post-body :global(pre span) {
+    color: var(--fg) !important;
+    background: none !important;
+  }
+
+  .post-body :global(pre code) {
+    font-size: 0.88em;
+    background: none;
+    padding: 0;
+  }
+
+  .post-body :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--rule);
+    margin: 2rem 0;
+  }
+
+  .post-body :global(table) {
+    margin-top: 1rem;
+    font-size: 0.92rem;
+    border: 1px solid var(--rule);
+  }
+
+  .post-body :global(th),
+  .post-body :global(td) {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--rule);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .post-body :global(th) {
+    font-weight: 700;
+    color: var(--label);
+  }
+
+  .post-body :global(figure) {
+    margin: 0;
+  }
+
+  .post-body :global(figcaption) {
+    margin-top: 0.4rem;
+    font-size: 0.88rem;
+    color: var(--fg-dim);
+  }
+</style>

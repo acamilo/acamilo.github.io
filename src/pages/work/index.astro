@@ -1,0 +1,82 @@
+---
+import Sheet from '../../layouts/Sheet.astro';
+import Zone from '../../components/Zone.astro';
+import Nav from '../../components/Nav.astro';
+import ProjectIndex from '../../components/ProjectIndex.astro';
+import TitleBlock from '../../components/TitleBlock.astro';
+import { getSheets } from '../../lib/projects';
+
+const sheets = await getSheets();
+---
+
+<Sheet
+  title="Work"
+  description="All 14 project sheets: circuit boards, conference badges, robotics platforms, medical device electronics, and two game-jam games."
+  ogImage={sheets[0].hero}
+>
+  <Zone letter="A" as="header" first>
+    <div class="head">
+      <h1 class="name">Work</h1>
+      <Nav current="work" brand="Alex Camilo" />
+    </div>
+    <div class="six head-body">
+      <p class="intro lead">
+        Mostly hardware. Circuit boards, conference badges, robots, and a couple of
+        game-jam games. Each row below is one sheet.
+      </p>
+    </div>
+  </Zone>
+
+  <main id="main">
+    <Zone letter="B" aria-labelledby="index-heading">
+      <h2 class="section-title" id="index-heading">
+        Sheet index <span class="count">{sheets.length} sheets</span>
+      </h2>
+      <ProjectIndex sheets={sheets} />
+    </Zone>
+  </main>
+
+  <Zone letter="C" as="footer" class="zone-block">
+    <TitleBlock
+      title="Sheet index"
+      id={`0/${sheets.length}`}
+      forText="Alex Camilo, electrical engineer"
+      sheet="/work/"
+      file="src/pages/work/index.astro"
+      extra={[
+        { label: 'Email', value: 'alex.camilo+p@gmail.com', href: 'mailto:alex.camilo+p@gmail.com', span: 3 },
+        { label: 'GitHub', value: 'github.com/acamilo', href: 'https://github.com/acamilo', span: 3 },
+      ]}
+    />
+  </Zone>
+</Sheet>
+
+<style>
+  .head-body {
+    margin-top: 1.5rem;
+  }
+
+  .intro {
+    grid-column: 1 / 5;
+  }
+
+  .zone-block {
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .zone-block :global(.tb) {
+    margin-top: 2.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .zone-block {
+      display: block;
+    }
+
+    .zone-block :global(.tb) {
+      margin-top: 0;
+    }
+  }
+</style>

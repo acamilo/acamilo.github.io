@@ -1,0 +1,123 @@
+---
+import Sheet from '../layouts/Sheet.astro';
+import Zone from '../components/Zone.astro';
+import Nav from '../components/Nav.astro';
+import TitleBlock from '../components/TitleBlock.astro';
+import { Picture } from 'astro:assets';
+import authorPhoto from '../assets/img/about/author.jpg';
+---
+
+<Sheet
+  title="About"
+  description="Electrical and computer engineer. Robotics startup founder, makerspace founder, hardware product developer."
+>
+  <Zone letter="A" as="header" first>
+    <div class="head">
+      <h1 class="name">About</h1>
+      <Nav current="about" brand="Alex Camilo" />
+    </div>
+  </Zone>
+
+  <main id="main">
+    <Zone letter="B">
+      <div class="six about-body">
+        <div class="prose about-text">
+          <p>
+            In high school I was the kid with lights on his Halloween costume, HyperCard
+            on an old Mac, and a Basic Stamp in his pocket. UIs in RealBasic on a
+            PowerBook.
+          </p>
+
+          <p>
+            Studied Electrical and Computer Engineering at WPI. Campus IEEE chapter, lots
+            of microcontroller work.
+          </p>
+
+          <p>
+            Senior year, some classmates and I started a robotics startup, <strong>Neuron
+            Robotics</strong>, building a platform for teaching educational robotics. We stuck
+            with it for a long time. Sold hardware to WPI's RBE department, got the
+            product into Micro Center. Alongside that I worked as a researcher at the{' '}
+            <strong>WPI AIM Lab</strong>.
+          </p>
+
+          <p>
+            I've done concept, parts selection, schematic capture, PCB layout, bring-up,
+            production, and retail.
+          </p>
+        </div>
+
+        <figure class="about-photo">
+          <Picture
+            src={authorPhoto}
+            formats={['avif', 'webp']}
+            widths={[220, authorPhoto.width]}
+            sizes="220px"
+            width={authorPhoto.width}
+            height={authorPhoto.height}
+            alt="Alex Camilo"
+          />
+        </figure>
+      </div>
+    </Zone>
+  </main>
+
+  <Zone letter="C" as="footer" class="zone-block">
+    <TitleBlock
+      title="About"
+      sheet="/about/"
+      file="src/pages/about.astro"
+      extra={[
+        { label: 'Email', value: 'alex.camilo+p@gmail.com', href: 'mailto:alex.camilo+p@gmail.com', span: 3 },
+        { label: 'GitHub', value: 'github.com/acamilo', href: 'https://github.com/acamilo', span: 3 },
+      ]}
+    />
+  </Zone>
+</Sheet>
+
+<style>
+  .about-body {
+    margin-top: 0.5rem;
+    align-items: start;
+  }
+
+  .about-text {
+    grid-column: 1 / 5;
+  }
+
+  .about-photo {
+    grid-column: 5 / 7;
+    margin: 0;
+  }
+
+  .about-photo :global(img) {
+    width: 100%;
+    max-width: 220px;
+    height: auto;
+    border: 1px solid var(--fg);
+  }
+
+  .zone-block {
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .zone-block :global(.tb) {
+    margin-top: 2.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .about-photo {
+      margin-top: 1.5rem;
+    }
+
+    .zone-block {
+      display: block;
+    }
+
+    .zone-block :global(.tb) {
+      margin-top: 0;
+    }
+  }
+</style>

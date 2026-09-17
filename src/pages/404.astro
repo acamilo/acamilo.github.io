@@ -1,0 +1,43 @@
+---
+import Sheet from '../layouts/Sheet.astro';
+import Zone from '../components/Zone.astro';
+import TitleBlock from '../components/TitleBlock.astro';
+---
+
+<Sheet title="Sheet not found" description="The requested path is not available statically.">
+  <main id="main">
+    <Zone letter="A" first>
+      <h1>Sheet not found</h1>
+      <p class="prose">The requested path is not available statically.</p>
+      <p class="links">
+        Go to <a href="/">Home</a> or <a href="/work/">Work</a>.
+      </p>
+
+      <div class="zone-block">
+        <TitleBlock title="Sheet not found" file="src/pages/404.astro" id="?/14" />
+      </div>
+    </Zone>
+  </main>
+</Sheet>
+
+<style>
+  .prose {
+    margin-top: 1rem;
+  }
+
+  .links {
+    margin-top: 1rem;
+  }
+
+  .zone-block {
+    margin-top: 2.5rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 860px) {
+    .zone-block {
+      display: block;
+    }
+  }
+</style>

@@ -1,0 +1,406 @@
+/* Self-hosted fonts (npm packages, no runtime requests to Google). */
+@import '@fontsource/b612/400.css';
+@import '@fontsource/b612/700.css';
+@import '@fontsource/b612-mono/400.css';
+/* wdth.css carries the full variable axes: font-weight 100 900, font-stretch 62% 125%. */
+@import '@fontsource-variable/archivo/wdth.css';
+
+/* ------------------------------------------------------------------ *
+ * Tokens.
+ *
+ * Two surfaces share one frame. Paper is the KiCad schematic palette,
+ * board is a soldermask ground with silkscreen marks. Components only
+ * ever use the SURFACE tokens (--bg, --fg, --fg-dim, --rule, --label,
+ * --mark, --focus); the .board scope below is what flips them, so any
+ * subtree becomes a board just by getting the class and a --mask.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --font-text: 'B612', system-ui, sans-serif;
+  --font-num: 'B612 Mono', ui-monospace, monospace;
+  --font-display: 'Archivo Variable', 'Arial Black', system-ui, sans-serif;
+
+  /* paper: KiCad schematic */
+  --paper: #fbfbf7;
+  --ink: #1c1c1c;
+  --ink-dim: #4a4a46;
+  --red: #8a1c1c; /* frame and title block: component outlines */
+  --green: #00843d; /* links, active wire, junction dots */
+  --teal: #00787a; /* field labels, numbers, secondary metadata */
+  --grid: #e4e4dc;
+
+  /* board: soldermask + silkscreen + ENIG */
+  --silk: #f4f1e6;
+  --silk-dim: rgba(244, 241, 230, 0.74);
+  --silk-line: rgba(244, 241, 230, 0.4);
+  --gold: #e3c26b;
+
+  /* geometry */
+  --strip: 22px; /* frame strip that carries the zone references */
+  --pad: 2rem;
+  --gap: 1.5rem;
+  --sheet-max: 1480px;
+
+  /* surface tokens, paper values */
+  --bg: var(--paper);
+  --fg: var(--ink);
+  --fg-dim: var(--ink-dim);
+  --rule: var(--grid);
+  --label: var(--teal);
+  --mark: var(--green);
+  --focus: var(--green);
+}
+
+/* Any subtree becomes a board by getting this class (or data-surface) and a
+   --mask. --mask-deep should be set alongside it (deepMask() in mask.ts does
+   it at build time; initScrollMask/initPlateLerp overwrite both live). */
+.board,
+[data-surface='board'] {
+  --mask: #12355b;
+  --mask-deep: #0b2340;
+  --bg: var(--mask);
+  --fg: var(--silk);
+  --fg-dim: var(--silk-dim);
+  --rule: var(--silk-line);
+  --label: var(--silk-dim);
+  --mark: var(--gold);
+  --focus: var(--silk);
+  background-color: var(--bg);
+  color: var(--fg);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-text);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--mark);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--mark);
+}
+
+/* On a board the gold is the underline, not the text: gold text on the lighter
+   masks lands just under 4.5:1, silk never does. */
+.board a:hover,
+[data-surface='board'] a:hover {
+  color: var(--silk);
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+}
+
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Titles set in silkscreen: Archivo, width 125, weight 800. Boards only. */
+.display {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.5rem 1rem;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * The drawing sheet: outer 1px line, strip, inner 2px line.
+ * The strip is ALWAYS paper with red marks, whatever is inside.
+ * ------------------------------------------------------------------ */
+
+.sheet {
+  position: relative;
+  width: min(100% - 32px, var(--sheet-max));
+  margin: 16px auto;
+  padding: var(--strip);
+  border: 1px solid var(--red);
+  background: var(--paper);
+}
+
+.sheet-inner {
+  border: 2px solid var(--red);
+}
+
+/* column references 1-6, aligned to the six-column content grid */
+.cols {
+  position: absolute;
+  left: var(--strip);
+  right: var(--strip);
+  height: var(--strip);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  column-gap: var(--gap);
+  padding-inline: calc(var(--pad) + 2px);
+  font-size: 0.68rem;
+  line-height: var(--strip);
+  color: var(--red);
+}
+
+.cols-top {
+  top: 0;
+}
+
+.cols-bottom {
+  bottom: 0;
+}
+
+.col-ref {
+  position: relative;
+  text-align: center;
+}
+
+.col-ref + .col-ref::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--gap) / -2);
+  border-left: 1px solid var(--red);
+}
+
+/* row references, one letter per real section of the page */
+.zone {
+  position: relative;
+  padding: var(--pad);
+  border-top: 1px solid var(--rule);
+}
+
+.zone-first {
+  border-top: 0;
+}
+
+.zone::before,
+.zone::after {
+  content: attr(data-zone);
+  content: attr(data-zone) / '';
+  position: absolute;
+  top: -1px;
+  bottom: 0;
+  width: var(--strip);
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-top: 0.45rem;
+  font-family: var(--font-text);
+  font-size: 0.68rem;
+  line-height: 1;
+  color: var(--red);
+  background: var(--paper);
+  border-top: 1px solid var(--red);
+}
+
+.zone::before {
+  left: calc(-1 * var(--strip) - 2px);
+}
+
+.zone::after {
+  right: calc(-1 * var(--strip) - 2px);
+}
+
+.zone-first::before,
+.zone-first::after {
+  border-top: 0;
+}
+
+/* the six-column content grid the column references line up with */
+.six {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: var(--gap);
+}
+
+/* ------------------------------------------------------------------ *
+ * Shared page furniture
+ * ------------------------------------------------------------------ */
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem 2rem;
+}
+
+.name {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  letter-spacing: -0.01em;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.count {
+  font-weight: 400;
+  color: var(--label);
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.num {
+  font-family: var(--font-num);
+}
+
+/* prose defaults for text pages (about, log, posts, project bodies) */
+.prose {
+  max-width: 62ch;
+  font-size: 1.0625rem;
+}
+
+.prose > * + * {
+  margin-top: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+}
+
+.prose h3 {
+  font-size: 1.05rem;
+  margin-top: 1.5rem;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.2rem;
+}
+
+.prose li + li {
+  margin-top: 0.35rem;
+}
+
+.prose code {
+  font-family: var(--font-num);
+  font-size: 0.92em;
+}
+
+.prose img {
+  border: 1px solid var(--fg);
+}
+
+.lead {
+  font-size: 1.125rem;
+  line-height: 1.65;
+  max-width: 62ch;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow. Single column, so the column references would mean nothing.
+ * ------------------------------------------------------------------ */
+
+@media (max-width: 860px) {
+  :root {
+    --strip: 14px;
+    --pad: 1rem;
+    --gap: 1rem;
+  }
+
+  .sheet {
+    width: calc(100% - 16px);
+    margin: 8px auto;
+  }
+
+  .cols {
+    display: none;
+  }
+
+  .zone::before,
+  .zone::after {
+    font-size: 0.56rem;
+  }
+
+  .six {
+    display: block;
+  }
+
+  .lead {
+    font-size: 1.05rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

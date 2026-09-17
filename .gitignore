@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+.corpus/
+mockups/
+.playwright-mcp/
+_orphans/
+_site/
+.jekyll-cache/
+.DS_Store

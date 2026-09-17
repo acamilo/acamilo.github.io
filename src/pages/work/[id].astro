@@ -1,0 +1,310 @@
+---
+// One project sheet. The frame and the strip are the same as everywhere; the
+// interior is a board in the project's soldermask colour.
+//
+//   A  head, title, body, KiCad title block flush in the top-right corner
+//   B  the figures, in justified rows
+//   C  the next sheet, which lerps the ground to its own colour as it arrives
+//   D  contact line
+//
+// The scroll engine (src/scripts/mask.ts) needs a data-mask-scope element; the
+// <Sheet> layout does not forward data attributes to its interior, so the page
+// carries its own board wrapper just inside it. Zone A and the next band are
+// the two colour stops.
+import Sheet from '../../layouts/Sheet.astro';
+import Zone from '../../components/Zone.astro';
+import Nav from '../../components/Nav.astro';
+import TitleBlock from '../../components/TitleBlock.astro';
+import Figures from '../../components/project/Figures.astro';
+import NextSheet from '../../components/project/NextSheet.astro';
+import Lightbox from '../../components/project/Lightbox.astro';
+import { orderFigures, type ProjectFigure } from '../../components/project/pack';
+import { getSheets } from '../../lib/projects';
+import { deepMask } from '../../scripts/mask';
+import { render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const sheets = await getSheets();
+  return sheets.map((sheet) => ({
+    params: { id: sheet.id },
+    props: { sheet },
+  }));
+}
+
+const { sheet } = Astro.props;
+const { entry } = sheet;
+const { Content } = await render(entry);
+
+// Figures: the hero first (it is usually in the gallery, and is never
+// repeated), then the rest in front-matter order, renumbered as they are shown.
+const heroPath = entry.data.hero;
+const inGallery = sheet.gallery.some(
+  (item) => item.media.kind === 'image' && item.media.path === heroPath,
+);
+const ordered = inGallery
+  ? orderFigures(sheet.gallery, heroPath)
+  : [
+      { media: { kind: 'image' as const, image: sheet.hero, path: heroPath }, no: 0 },
+      ...sheet.gallery,
+    ];
+
+const figures: ProjectFigure[] = ordered.map((item, i) => {
+  const size = item.media.kind === 'image' ? item.media.image : item.media.poster;
+  const hero = item.media.kind === 'image' && item.media.path === heroPath;
+  const heroAlt = hero ? entry.data.hero_alt : undefined;
+  return {
+    media: item.media,
+    no: i + 1,
+    caption: item.caption,
+    alt: item.caption ?? heroAlt ?? `${entry.data.title} photo`,
+    ar: size.width / size.height,
+    natWidth: size.width,
+    natHeight: size.height,
+    hero,
+  };
+});
+
+// Title block fields
+const typeList = entry.data.categories.join(', ');
+const type = typeList
+  ? typeList.charAt(0).toUpperCase() + typeList.slice(1).toLowerCase()
+  : undefined;
+const link = entry.data.project_url
+  ? { href: entry.data.project_url, label: entry.data.link_label ?? entry.data.project_url }
+  : undefined;
+const id = `${sheet.no}/${sheet.total}`;
+// The "For" field names the client; the year is its own Date field, so the
+// block does not repeat it the way the for-sentence does.
+const fields = {
+  id,
+  title: entry.data.title,
+  forText: entry.data.client,
+  date: entry.data.year ? String(entry.data.year) : '',
+};
+
+// One letter per real section: every project has figures today, but the page
+// must not skip a letter if one ever has none.
+const hasFigures = figures.length > 0;
+const headLetter = 'A';
+const figuresLetter = 'B';
+const nextLetter = hasFigures ? 'C' : 'B';
+const tailLetter = hasFigures ? 'D' : 'C';
+---
+
+<Sheet
+  title={entry.data.title}
+  description={entry.data.description}
+  ogImage={sheet.hero}
+  surface="board"
+  mask={sheet.color}
+>
+  <!-- The sheet interior is named for the view transition, so the board colour
+       can carry across navigation once the index plate carries the same name
+       (the plate names its photo `plate-<id>` today, which the hero figure
+       below matches). Inline because the name is per project. -->
+  <style
+    is:inline
+    set:html={`.sheet-inner{view-transition-name:board-${sheet.id}}`}
+  />
+
+  <div
+    class="scope board"
+    data-mask-scope
+    style={`--mask:${sheet.color};--mask-deep:${deepMask(sheet.color)}`}
+  >
+    <main id="main">
+      <Zone
+        letter={headLetter}
+        as="header"
+        first
+        class="phead"
+        data-mask={sheet.color}
+        data-id={fields.id}
+        data-title={fields.title}
+        data-for={fields.forText}
+        data-date={fields.date}
+        style={`--m:${sheet.color}`}
+      >
+        <div class="six phead-grid">
+          <div class="phead-top">
+            <a class="brand" href="/">Alex Camilo</a>
+            <Nav current="work" />
+          </div>
+
+          <h1 class="ptitle display">{entry.data.title}</h1>
+
+          <div class="pbody prose">
+            <Content />
+          </div>
+
+          <div class:list={['phead-tb', { 'tb-dated': entry.data.year !== undefined }]}>
+            <TitleBlock
+              variant="board"
+              live
+              sheet={sheet.url}
+              file={`src/content/projects/${entry.id}.md`}
+              title={entry.data.title}
+              forText={fields.forText}
+              date={entry.data.year}
+              type={type}
+              link={link}
+              id={id}
+              mask={sheet.color}
+            />
+          </div>
+        </div>
+      </Zone>
+
+      {
+        figures.length > 0 && (
+          <Zone letter={figuresLetter} class="pfigs" aria-labelledby="figures-heading">
+            <h2 class="visually-hidden" id="figures-heading">
+              Figures
+            </h2>
+            <Figures figures={figures} heroVt={`plate-${sheet.id}`} />
+          </Zone>
+        )
+      }
+
+      <NextSheet next={sheet.next} letter={nextLetter} fields={fields} />
+    </main>
+
+    <Zone letter={tailLetter} as="footer" class="tail" style={`--m:${sheet.next.color}`}>
+      <p class="tail-all"><a href="/work/">All {sheet.total} sheets</a></p>
+      <p class="contact-line">
+        <a href="mailto:alex.camilo+p@gmail.com">alex.camilo+p@gmail.com</a>
+        <a href="https://github.com/acamilo" rel="me">github.com/acamilo</a>
+        <a href="/feed.xml">RSS</a>
+      </p>
+    </Zone>
+
+    <Lightbox />
+  </div>
+</Sheet>
+
+<style>
+  /* the board the scroll engine writes on; the layout's interior is the same
+     colour underneath it, so the first paint is right before any script runs */
+  .scope {
+    display: flow-root;
+  }
+
+  /* ---- A: head, title, body, title block ---- */
+  .phead {
+    background: var(--m); /* no-JS */
+  }
+
+  :global(.mask-js) .phead,
+  :global(.mask-js) .tail {
+    background: transparent;
+  }
+
+  .phead-grid {
+    align-items: start;
+  }
+
+  .phead-top {
+    grid-column: 1 / 5;
+    grid-row: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem 2rem;
+  }
+
+  .brand {
+    font-weight: 700;
+    text-decoration-color: transparent;
+  }
+
+  .brand:hover {
+    text-decoration-color: var(--mark);
+  }
+
+  .ptitle {
+    grid-column: 1 / 5;
+    grid-row: 2;
+    margin-top: 2rem;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+  }
+
+  .pbody {
+    grid-column: 1 / 5;
+    grid-row: 3;
+    margin-top: 1.5rem;
+    font-size: 1.125rem;
+    max-width: 62ch;
+  }
+
+  /* flush into the top-right corner of the sheet: the frame closes it */
+  .phead-tb {
+    grid-column: 5 / 7;
+    grid-row: 1 / 4;
+    margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 0 0;
+    align-self: start;
+  }
+
+  .phead-tb :global(.tb) {
+    width: auto;
+    border-top: 0;
+    border-bottom: 1.5px solid var(--silk-line);
+  }
+
+  /* With a Date field the Mask cell would sit alone in a third of its row;
+     let it run to the edge instead, so the block has no half-empty row. */
+  .tb-dated :global(.tb-cell[data-field='mask']) {
+    grid-column: 1 / -1;
+    border-right: 0;
+  }
+
+  /* ---- B: figures ---- */
+  .pfigs {
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+  }
+
+  /* ---- D: contact ---- */
+  .tail {
+    background: var(--m); /* no-JS: the ground has reached the next sheet */
+  }
+
+  .tail-all {
+    font-size: 0.95rem;
+  }
+
+  .contact-line {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    font-size: 0.85rem;
+    color: var(--fg-dim);
+  }
+
+  @media (max-width: 860px) {
+    .ptitle {
+      margin-top: 1.25rem;
+    }
+
+    .pbody {
+      margin-top: 1rem;
+      font-size: 1.05rem;
+    }
+
+    /* the block moves to the foot of the zone and spans the sheet */
+    .phead-tb {
+      margin: 1.5rem calc(-1 * var(--pad)) calc(-1 * var(--pad));
+    }
+
+    .phead-tb :global(.tb) {
+      width: 100%;
+      border-top: 1.5px solid var(--silk-line);
+      border-bottom: 0;
+    }
+
+    .pfigs {
+      padding-top: 1.5rem;
+    }
+  }
+</style>

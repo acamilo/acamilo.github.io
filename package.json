@@ -1,0 +1,25 @@
+{
+  "name": "acamilo-github-io",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.12",
+    "@astrojs/sitemap": "^3.6.0",
+    "@fontsource-variable/archivo": "^5.2.7",
+    "@fontsource/b612": "^5.2.6",
+    "@fontsource/b612-mono": "^5.2.6",
+    "astro": "^7.3.3",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.7.3"
+  }
+}

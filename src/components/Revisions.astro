@@ -1,0 +1,107 @@
+---
+// Revisions block: the drawing's change history, whose rows are the log
+// entries, newest first. Rev letters are assigned oldest = A in
+// src/lib/projects.ts. Hairlines match the title block (red on paper, silk on
+// a board).
+//
+// Props:
+//   entries  LogEntry[] from getLogEntries()
+//   limit    show at most this many rows (default: all)
+//   caption  default "Revisions (the log)"
+//   variant  'paper' (default) | 'board'
+import type { LogEntry } from '../lib/projects';
+
+export interface Props {
+  entries: LogEntry[];
+  limit?: number;
+  caption?: string;
+  variant?: 'paper' | 'board';
+  class?: string;
+}
+
+const {
+  entries,
+  limit,
+  caption = 'Revisions (the log)',
+  variant = 'paper',
+  class: className,
+} = Astro.props;
+
+const rows = limit ? entries.slice(0, limit) : entries;
+const iso = (d: Date): string => d.toISOString().slice(0, 10);
+---
+
+<table class:list={['rev', { 'rev-board': variant === 'board' }, className]}>
+  <caption class="rev-caption">{caption}</caption>
+  <thead>
+    <tr>
+      <th class="rev-th" scope="col">Rev</th>
+      <th class="rev-th" scope="col">Date</th>
+      <th class="rev-th" scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      rows.map((l) => (
+        <tr>
+          <td class="rev-cell rev-num">{l.rev}</td>
+          <td class="rev-cell rev-num">
+            <time datetime={iso(l.entry.data.date)}>{iso(l.entry.data.date)}</time>
+          </td>
+          <td class="rev-cell">
+            <a href={l.url}>{l.entry.data.title}</a>
+          </td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>
+
+<style>
+  .rev {
+    --tb-line: var(--red);
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    border: 1px solid var(--tb-line);
+  }
+
+  .rev-board {
+    --tb-line: var(--silk-line);
+    background: var(--mask-deep);
+    border-width: 1.5px;
+  }
+
+  .rev-caption {
+    text-align: left;
+    font-size: 0.72rem;
+    color: var(--label);
+    padding: 0 0 0.35rem;
+  }
+
+  .rev-th {
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--label);
+    text-align: left;
+  }
+
+  .rev-th,
+  .rev-cell {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--tb-line);
+    vertical-align: top;
+  }
+
+  .rev-board .rev-th,
+  .rev-board .rev-cell {
+    border-width: 1.5px;
+  }
+
+  .rev-num {
+    font-family: var(--font-num);
+    font-size: 0.82rem;
+    color: var(--label);
+    white-space: nowrap;
+  }
+</style>

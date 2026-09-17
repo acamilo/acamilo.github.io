@@ -1,0 +1,171 @@
+---
+// The "next sheet" band at the foot of a project sheet.
+//
+// It is the second colour stop of the page: the sheet interior is the scroll
+// scope (data-mask-scope), this band carries data-mask="<next colour>", and
+// src/scripts/mask.ts lerps the interior's ground from this project's mask to
+// the next one's in Oklab as the band comes up the screen. The live fields it
+// republishes are this sheet's own, so the title block keeps describing the
+// sheet you are on while its Mask readout counts along with the ground.
+//
+// Without JavaScript the band simply paints its own colour (--m).
+//
+// Props:
+//   next    Sheet, the next project by order (wraps after the last)
+//   letter  zone letter
+//   fields  values for the page's live title block (they must not change here)
+//   sizes   <img> sizes for the hero
+import { Picture } from 'astro:assets';
+import Zone from '../Zone.astro';
+import type { Sheet } from '../../lib/projects';
+
+export interface Props {
+  next: Sheet;
+  letter: string;
+  fields: { id: string; title: string; forText: string; date: string };
+  sizes?: string;
+}
+
+const {
+  next,
+  letter,
+  fields,
+  sizes = '(min-width: 861px) min(52vw, 760px), calc(100vw - 2rem)',
+} = Astro.props;
+
+const candidates = [480, 800, 1300, 1920, 2600];
+const widths = candidates.filter((w) => w <= next.hero.width);
+if (!widths.includes(next.hero.width)) widths.push(next.hero.width);
+
+const portrait = next.hero.height > next.hero.width;
+---
+
+<Zone
+  letter={letter}
+  class="next"
+  data-shape={portrait ? 'portrait' : 'landscape'}
+  data-mask={next.color}
+  data-id={fields.id}
+  data-title={fields.title}
+  data-for={fields.forText}
+  data-date={fields.date}
+  style={`--m:${next.color}`}
+  aria-labelledby="next-sheet-heading"
+>
+  <div class="next-text">
+    <p class="next-label">Next sheet, {next.no} of {next.total}</p>
+    <h2 class="next-title display" id="next-sheet-heading">
+      <a href={next.url}>{next.entry.data.title}</a>
+    </h2>
+    <p class="next-for">{next.forSentence}</p>
+    <p class="next-desc">{next.entry.data.description}</p>
+  </div>
+  <figure
+    class="next-shot"
+    style={`--natw:${next.hero.width}px;--ar:${(next.hero.width / next.hero.height).toFixed(4)}`}
+  >
+    <Picture
+      src={next.hero}
+      formats={['avif', 'webp']}
+      widths={widths}
+      sizes={sizes}
+      width={next.hero.width}
+      height={next.hero.height}
+      alt={next.entry.data.hero_alt ?? `${next.entry.data.title} photo`}
+      loading="lazy"
+      style={`view-transition-name: plate-${next.id}`}
+    />
+  </figure>
+</Zone>
+
+<style>
+  .next {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2rem, 4vw, 5rem);
+    align-items: center;
+    min-height: 74vh;
+    padding-block: 4rem;
+    /* no-JS: the band paints its own colour */
+    background: var(--m);
+  }
+
+  .next[data-shape='portrait'] {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+
+  :global(.mask-js) .next {
+    background: transparent;
+  }
+
+  .next-label {
+    color: var(--fg-dim);
+    margin-bottom: 0.8rem;
+  }
+
+  .next-title {
+    font-size: clamp(1.9rem, 3.6vw, 3.4rem);
+  }
+
+  .next-title a {
+    text-decoration: none;
+  }
+
+  .next-title a:hover {
+    color: var(--silk);
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-decoration-thickness: 4px;
+    text-underline-offset: 0.12em;
+  }
+
+  .next-for {
+    margin-top: 1.4rem;
+    color: var(--fg-dim);
+  }
+
+  .next-desc {
+    margin-top: 0.35rem;
+    max-width: 34ch;
+    font-size: 1.1rem;
+  }
+
+  .next-shot {
+    margin: 0;
+    justify-self: end;
+    width: 100%;
+    max-width: min(var(--natw), calc((100vh - 18rem) * var(--ar)));
+  }
+
+  .next[data-shape='portrait'] .next-shot {
+    max-width: min(var(--natw), calc((100vh - 22rem) * var(--ar)));
+  }
+
+  .next-shot :global(img) {
+    width: 100%;
+    height: auto;
+    border: 1.5px solid var(--silk-line);
+  }
+
+  @media (max-width: 860px) {
+    .next,
+    .next[data-shape='portrait'] {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
+      gap: 1.25rem;
+      padding-block: 2rem;
+    }
+
+    .next-shot,
+    .next[data-shape='portrait'] .next-shot {
+      order: -1;
+      justify-self: start;
+      max-width: min(var(--natw), calc(58vh * var(--ar)), 100%);
+    }
+
+    .next-desc {
+      max-width: none;
+      font-size: 1rem;
+    }
+  }
+</style>

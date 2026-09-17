@@ -1,0 +1,152 @@
+---
+import Sheet from '../../layouts/Sheet.astro';
+import Zone from '../../components/Zone.astro';
+import Nav from '../../components/Nav.astro';
+import TitleBlock from '../../components/TitleBlock.astro';
+import { getLogEntries } from '../../lib/projects';
+
+const logEntries = await getLogEntries();
+const iso = (d: Date): string => d.toISOString().slice(0, 10);
+---
+
+<Sheet
+  title="Log"
+  description="Notes on hardware, projects, and whatever is currently on the bench."
+>
+  <Zone letter="A" as="header" first>
+    <div class="head">
+      <h1 class="name">Log</h1>
+      <Nav current="log" brand="Alex Camilo" />
+    </div>
+    <div class="six head-body">
+      <p class="intro lead">Bench notes and project write-ups, newest first.</p>
+    </div>
+  </Zone>
+
+  <main id="main">
+    <Zone letter="B" aria-labelledby="log-heading">
+      <h2 class="section-title" id="log-heading">
+        Entries <span class="count">{logEntries.length} {logEntries.length === 1 ? 'entry' : 'entries'}</span>
+      </h2>
+      <table class="log-table">
+        <caption class="visually-hidden">Log entries, newest first</caption>
+        <thead>
+          <tr>
+            <th class="log-th" scope="col">Rev</th>
+            <th class="log-th" scope="col">Date</th>
+            <th class="log-th" scope="col">Entry</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            logEntries.map((l) => (
+              <tr>
+                <td class="log-cell log-num">{l.rev}</td>
+                <td class="log-cell log-num">
+                  <time datetime={iso(l.entry.data.date)}>{iso(l.entry.data.date)}</time>
+                </td>
+                <td class="log-cell log-entry">
+                  <a href={l.url}>{l.entry.data.title}</a>
+                  <p class="log-excerpt">{l.entry.data.description}</p>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </Zone>
+  </main>
+
+  <Zone letter="C" as="footer" class="zone-block">
+    <TitleBlock
+      title="Log"
+      id={`${logEntries.length}/${logEntries.length}`}
+      sheet="/log/"
+      file="src/pages/log/index.astro"
+      extra={[
+        { label: 'Email', value: 'alex.camilo+p@gmail.com', href: 'mailto:alex.camilo+p@gmail.com', span: 3 },
+        { label: 'GitHub', value: 'github.com/acamilo', href: 'https://github.com/acamilo', span: 3 },
+      ]}
+    />
+  </Zone>
+</Sheet>
+
+<style>
+  .head-body {
+    margin-top: 1.5rem;
+  }
+
+  .intro {
+    grid-column: 1 / 5;
+  }
+
+  .log-table {
+    width: 100%;
+    max-width: 46rem;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    border: 1px solid var(--rule);
+  }
+
+  .log-th {
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--label);
+    text-align: left;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid var(--rule);
+  }
+
+  .log-cell {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  .log-num {
+    font-family: var(--font-num);
+    font-size: 0.82rem;
+    color: var(--label);
+    white-space: nowrap;
+  }
+
+  .log-entry a {
+    font-weight: 700;
+  }
+
+  .log-excerpt {
+    margin: 0.25rem 0 0;
+    color: var(--fg-dim);
+    font-size: 0.92rem;
+  }
+
+  .zone-block {
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .zone-block :global(.tb) {
+    margin-top: 2.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .log-th:nth-child(1),
+    .log-th:nth-child(2),
+    .log-cell.log-num {
+      display: none;
+    }
+
+    .log-entry {
+      display: block;
+    }
+
+    .zone-block {
+      display: block;
+    }
+
+    .zone-block :global(.tb) {
+      margin-top: 0;
+    }
+  }
+</style>

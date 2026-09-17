@@ -1,0 +1,48 @@
+---
+// One lettered section of a sheet. The letter is drawn in the frame strip on
+// both sides (paper background, red mark) and a hairline rule separates it from
+// the zone above.
+//
+// Letters are assigned by the page, one per REAL section, starting at A.
+//
+// Props:
+//   letter   "A" | "B" | "C" | "D" ... shown in the strip
+//   as       tag name, default "section" (use "header" / "footer" / "div")
+//   first    true on the first zone of the page (drops the top rule)
+//   board    make this zone a board surface (needs `mask`, or a live --mask)
+//   mask     hex soldermask for this zone's ground
+//   class    extra classes
+// Everything else (id, aria-*, data-*) is forwarded to the element.
+import { deepMask } from '../scripts/mask';
+
+export interface Props {
+  letter: string;
+  as?: 'section' | 'header' | 'footer' | 'div' | 'article' | 'main' | 'nav';
+  first?: boolean;
+  board?: boolean;
+  mask?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+
+const {
+  letter,
+  as: Tag = 'section',
+  first = false,
+  board = false,
+  mask,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const style = mask ? `--mask:${mask};--mask-deep:${deepMask(mask)}` : undefined;
+---
+
+<Tag
+  class:list={['zone', { 'zone-first': first, board }, className]}
+  data-zone={letter}
+  style={style}
+  {...rest}
+>
+  <slot />
+</Tag>

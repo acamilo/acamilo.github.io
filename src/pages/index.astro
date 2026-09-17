@@ -1,0 +1,104 @@
+---
+import Sheet from '../layouts/Sheet.astro';
+import Zone from '../components/Zone.astro';
+import Nav from '../components/Nav.astro';
+import Revisions from '../components/Revisions.astro';
+import ProjectIndex from '../components/ProjectIndex.astro';
+import Boards from '../components/Boards.astro';
+import TitleBlock from '../components/TitleBlock.astro';
+import { getSheets, getLogEntries } from '../lib/projects';
+
+const sheets = await getSheets();
+const logEntries = await getLogEntries();
+const featured = sheets.filter((s) => s.entry.data.featured);
+---
+
+<Sheet
+  title="Alex Camilo, electrical engineer"
+  description="Electrical engineer in Worcester, MA. Circuit boards and the firmware that runs on them: motor drivers for MRI-compatible surgical robots, conference badges, robots for teaching."
+  ogImage={sheets[0].hero}
+  bare
+>
+  <Zone letter="A" as="header" first>
+    <div class="head">
+      <h1 class="name">Alex Camilo</h1>
+      <Nav />
+    </div>
+    <div class="six head-body">
+      <p class="intro lead">
+        I'm an electrical engineer in Worcester, MA. I design circuit boards and write the
+        firmware that runs on them: motor drivers for MRI-compatible surgical robots,
+        conference badges, robots for teaching. I've done concept, parts selection,
+        schematic capture, PCB layout, bring-up, production, and retail.
+      </p>
+      <div class="head-rev">
+        <Revisions entries={logEntries} />
+      </div>
+    </div>
+  </Zone>
+
+  <main id="main">
+    <Zone letter="B" aria-labelledby="index-heading">
+      <h2 class="section-title" id="index-heading">
+        Projects <span class="count">{sheets.length} sheets</span>
+      </h2>
+      <ProjectIndex sheets={sheets} />
+    </Zone>
+
+    <Boards sheets={featured} letter="C" />
+  </main>
+
+  <Zone letter="D" as="footer" class="zone-block">
+    <TitleBlock
+      title="Alex Camilo"
+      id={`0/${sheets.length}`}
+      forText="Electrical engineer, Worcester, MA"
+      sheet="/"
+      file="src/pages/index.astro"
+      extra={[
+        { label: 'Email', value: 'alex.camilo+p@gmail.com', href: 'mailto:alex.camilo+p@gmail.com', span: 3 },
+        { label: 'GitHub', value: 'github.com/acamilo', href: 'https://github.com/acamilo', span: 3 },
+        { label: 'Feed', value: 'RSS', href: '/feed.xml', span: 6 },
+      ]}
+    />
+  </Zone>
+</Sheet>
+
+<style>
+  .head-body {
+    margin-top: 1.5rem;
+    align-items: start;
+  }
+
+  .intro {
+    grid-column: 1 / 5;
+  }
+
+  .head-rev {
+    grid-column: 5 / 7;
+  }
+
+  .zone-block {
+    padding: 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .zone-block :global(.tb) {
+    margin-top: 2.5rem;
+  }
+
+  @media (max-width: 860px) {
+    .head-rev {
+      margin-top: 1.5rem;
+    }
+
+    .zone-block {
+      display: block;
+    }
+
+    .zone-block :global(.tb) {
+      margin-top: 0;
+    }
+  }
+</style>

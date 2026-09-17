@@ -1,0 +1,111 @@
+---
+// The one base layout: a drawing sheet. Outer 1px line, a paper strip carrying
+// the column references 1-6 (top and bottom, aligned to the six-column content
+// grid) and the zone letters (drawn by <Zone>), then the inner 2px line.
+//
+// The strip stays paper with red marks even when the interior is a board, so
+// `surface="board"` + `mask="#0f5735"` turns only the interior into a board.
+//
+// Props:
+//   title        page title, " | Alex Camilo" appended unless `bare`
+//   description  meta description + OG
+//   ogImage      ImageMetadata for og:image (resized to <=1200 wide)
+//   bare         don't append the site name to the title
+//   surface      'paper' (default) | 'board': the sheet interior
+//   mask         hex soldermask for the interior when surface="board".
+//                --mask-deep is derived at build time.
+//   class        extra class(es) on the sheet interior
+import '../styles/global.css';
+import type { ImageMetadata } from 'astro';
+import { getImage } from 'astro:assets';
+import { deepMask } from '../scripts/mask';
+
+export interface Props {
+  title: string;
+  description: string;
+  ogImage?: ImageMetadata;
+  bare?: boolean;
+  surface?: 'paper' | 'board';
+  mask?: string;
+  class?: string;
+}
+
+const {
+  title,
+  description,
+  ogImage,
+  bare = false,
+  surface = 'paper',
+  mask,
+  class: className,
+} = Astro.props;
+
+const pageTitle = bare ? title : `${title} | Alex Camilo`;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+let ogImageURL: string | undefined;
+if (ogImage) {
+  const optimized = await getImage({ src: ogImage, width: Math.min(1200, ogImage.width) });
+  ogImageURL = new URL(optimized.src, Astro.site).toString();
+}
+
+const isBoard = surface === 'board';
+const interiorStyle = mask ? `--mask:${mask};--mask-deep:${deepMask(mask)}` : undefined;
+const cols = [1, 2, 3, 4, 5, 6];
+---
+
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <link rel="alternate" type="application/rss+xml" title="Alex Camilo" href="/feed.xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
+
+    <meta name="twitter:card" content={ogImageURL ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    {ogImageURL && <meta name="twitter:image" content={ogImageURL} />}
+
+    <style is:global>
+      @view-transition {
+        navigation: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="sheet">
+      <div class="cols cols-top" aria-hidden="true">
+        {cols.map((n) => <span class="col-ref">{n}</span>)}
+      </div>
+
+      <div
+        class:list={['sheet-inner', { board: isBoard }, className]}
+        style={interiorStyle}
+        data-surface={isBoard ? 'board' : undefined}
+      >
+        <slot />
+      </div>
+
+      <div class="cols cols-bottom" aria-hidden="true">
+        {cols.map((n) => <span class="col-ref">{n}</span>)}
+      </div>
+    </div>
+
+    <script>
+      import { initMasks } from '../scripts/mask';
+      initMasks();
+    </script>
+  </body>
+</html>

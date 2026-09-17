@@ -1,0 +1,355 @@
+---
+// KiCad title block. Sits flush in the bottom-right corner of a sheet (the
+// drawing frame closes its right and bottom edges), or top-right on a project
+// sheet. With `sticky` it becomes the status bar along the bottom of a board
+// zone instead: one full-width row, Id | Title | For | Date | Mask.
+//
+// Paper variant: red hairlines, teal field labels, B612 title.
+// Board variant : silk hairlines on a --mask-deep fill, Archivo title, and a
+//                 Mask field with a swatch + hex readout (data-hex, so
+//                 initScrollMask / initPlateLerp can count it along).
+//
+// Props (all optional; a field is only drawn when its value is given):
+//   sheet     URL path, e.g. "/work/mri/"
+//   file      content source file, e.g. "src/content/projects/mri.md"
+//   title     large title field
+//   forText   "For" field
+//   date      "Date" field (year)
+//   type      "Type" field, categories as a plain comma list
+//   link      { href, label } "Link" field
+//   id        "Id" field, e.g. "1/14"
+//   mask      hex soldermask; adds the "Mask" field with swatch + hex
+//   extra     [{ label, value?, href?, span? }] extra cells (contact links)
+//   variant   'paper' (default) | 'board'
+//   live      mark Id/Title/For/Date/Mask values with data-f / data-hex so the
+//             scroll engine can rewrite them
+//   sticky    render as the full-width status bar pinned to the bottom of the
+//             containing board zone (Id, Title and Mask only below 861px)
+//   label     aria-label, default "Title block"
+import { deepMask } from '../scripts/mask';
+
+export interface ExtraField {
+  label: string;
+  value?: string;
+  href?: string;
+  span?: number;
+}
+
+export interface Props {
+  sheet?: string;
+  file?: string;
+  title?: string;
+  forText?: string;
+  date?: string | number;
+  type?: string;
+  link?: { href: string; label: string };
+  id?: string;
+  mask?: string;
+  extra?: ExtraField[];
+  variant?: 'paper' | 'board';
+  live?: boolean;
+  sticky?: boolean;
+  label?: string;
+  class?: string;
+}
+
+const {
+  sheet,
+  file,
+  title,
+  forText,
+  date,
+  type,
+  link,
+  id,
+  mask,
+  extra = [],
+  variant = 'paper',
+  live = false,
+  sticky = false,
+  label = 'Title block',
+  class: className,
+} = Astro.props;
+
+type Cell = {
+  label: string;
+  span: number;
+  value?: string;
+  href?: string;
+  kind?: 'big' | 'num' | 'mask';
+  field?: string;
+  optional?: boolean;
+};
+
+const cells: Cell[] = [];
+if (title) cells.push({ label: 'Title', value: title, span: 4, kind: 'big', field: 'title' });
+if (id) cells.push({ label: 'Id', value: id, span: 2, kind: 'num', field: 'id' });
+if (forText) cells.push({ label: 'For', value: forText, span: mask || date ? 4 : 6, field: 'for' });
+if (date !== undefined) cells.push({ label: 'Date', value: String(date), span: 2, kind: 'num', field: 'date' });
+if (mask) cells.push({ label: 'Mask', value: mask.toUpperCase(), span: 2, kind: 'mask' });
+if (type) cells.push({ label: 'Type', value: type, span: 6, optional: true });
+if (sheet) cells.push({ label: 'Sheet', value: sheet, span: 3, kind: 'num', optional: true });
+if (file) cells.push({ label: 'File', value: file, span: 3, kind: 'num', optional: true });
+if (link) cells.push({ label: 'Link', value: link.label, href: link.href, span: 6, optional: true });
+for (const e of extra) {
+  cells.push({ label: e.label, value: e.value, href: e.href, span: e.span ?? 3, optional: true });
+}
+
+// Lay the cells out on a 6-column grid so we know which ones close a row (no
+// right border: the sheet frame closes the block) and which sit in the last
+// row (no bottom border, same reason).
+let x = 0;
+let row = 0;
+const placed = cells.map((c, i) => {
+  if (x + c.span > 6) {
+    x = 0;
+    row += 1;
+  }
+  x += c.span;
+  const rowIndex = row;
+  const rowEnd = x >= 6 || i === cells.length - 1;
+  if (rowEnd) {
+    x = 0;
+    row += 1;
+  }
+  return { ...c, rowIndex, rowEnd };
+});
+const lastRow = placed.length ? placed[placed.length - 1].rowIndex : 0;
+
+const isBoard = variant === 'board';
+// A live block inherits --mask / --mask-deep from the scope the engine writes
+// on, so it must not pin them itself.
+const style = isBoard && mask && !live ? `--mask:${mask};--mask-deep:${deepMask(mask)}` : undefined;
+---
+
+<dl
+  class:list={['tb', { 'tb-board': isBoard, 'tb-sticky': sticky }, className]}
+  aria-label={label}
+  style={style}
+>
+  {
+    placed.map((c) => (
+      <div
+        class:list={[
+          'tb-cell',
+          `tb-${c.span}`,
+          { 'tb-end': c.rowEnd, 'tb-last': c.rowIndex === lastRow, 'tb-opt': c.optional },
+        ]}
+        data-field={c.field ?? c.label.toLowerCase()}
+      >
+        <dt class="tb-label">{c.label}</dt>
+        <dd
+          class:list={[
+            'tb-value',
+            { 'tb-big': c.kind === 'big', 'tb-num': c.kind === 'num', display: c.kind === 'big' && isBoard },
+          ]}
+        >
+          {c.kind === 'mask' && <span class="tb-swatch" aria-hidden="true" />}
+          {c.href ? (
+            <a href={c.href} rel={c.href.startsWith('http') ? 'noopener' : undefined}>
+              {c.value}
+            </a>
+          ) : c.kind === 'mask' ? (
+            <span class="tb-hex" data-hex={live ? '' : undefined}>
+              {c.value}
+            </span>
+          ) : (
+            <span data-f={live && c.field ? c.field : undefined}>{c.value}</span>
+          )}
+        </dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .tb {
+    --tb-line: var(--red);
+    margin: 0;
+    width: min(100%, 38rem);
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border-left: 2px solid var(--tb-line);
+    border-top: 2px solid var(--tb-line);
+  }
+
+  .tb-board {
+    --tb-line: var(--silk-line);
+    background: var(--mask-deep);
+    border-left-width: 1.5px;
+    border-top-width: 1.5px;
+  }
+
+  .tb-cell {
+    grid-column: span 2;
+    padding: 0.45rem 0.7rem 0.55rem;
+    border-right: 1px solid var(--tb-line);
+    border-bottom: 1px solid var(--tb-line);
+    min-width: 0;
+  }
+
+  .tb-board .tb-cell {
+    border-right-width: 1.5px;
+    border-bottom-width: 1.5px;
+  }
+
+  .tb-1 { grid-column: span 1; }
+  .tb-2 { grid-column: span 2; }
+  .tb-3 { grid-column: span 3; }
+  .tb-4 { grid-column: span 4; }
+  .tb-5 { grid-column: span 5; }
+  .tb-6 { grid-column: span 6; }
+
+  .tb-end {
+    border-right: 0;
+  }
+
+  .tb-last {
+    border-bottom: 0;
+  }
+
+  .tb-label {
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: var(--label);
+  }
+
+  .tb-value {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .tb-big {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .tb-board .tb-big {
+    font-size: 1.15rem;
+    font-stretch: 125%;
+    font-weight: 800;
+  }
+
+  .tb-num {
+    font-family: var(--font-num);
+    font-size: 0.86rem;
+  }
+
+  .tb-swatch {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.45em;
+    background: var(--mask);
+    border: 1.5px solid var(--silk);
+    vertical-align: -0.04em;
+  }
+
+  .tb-hex {
+    font-family: var(--font-num);
+    font-size: 0.86rem;
+    color: var(--gold);
+  }
+
+  /* sticky: a status bar along the bottom of the board zone, the way the
+     KiCad editors carry theirs. One row, full width, cells left to right. */
+  .tb-sticky {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    min-height: 2.6rem;
+    border: 0;
+    border-top: 1.5px solid var(--tb-line);
+    background: var(--mask-deep);
+  }
+
+  .tb-sticky .tb-cell {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    min-width: 0;
+    grid-column: auto;
+    padding: 0.55rem 0.9rem;
+    border: 0;
+    border-right: 1.5px solid var(--tb-line);
+  }
+
+  .tb-sticky .tb-cell:last-child {
+    border-right: 0;
+  }
+
+  .tb-sticky [data-field='id'] {
+    order: 1;
+    /* first cell lines up with the content column */
+    padding-left: max(0.9rem, var(--pad));
+  }
+  .tb-sticky [data-field='title'] {
+    order: 2;
+    flex: 1 1 auto;
+  }
+  .tb-sticky [data-field='for'] {
+    order: 3;
+    max-width: 32%;
+  }
+  .tb-sticky [data-field='date'] {
+    order: 4;
+  }
+  .tb-sticky [data-field='mask'] {
+    order: 5;
+  }
+
+  .tb-sticky .tb-label {
+    flex: 0 0 auto;
+  }
+
+  .tb-sticky .tb-value {
+    font-size: 0.86rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tb-sticky .tb-big {
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 860px) {
+    .tb {
+      width: 100%;
+      border-left: 0;
+      border-top: 0;
+    }
+    .tb-3 {
+      grid-column: span 6;
+      border-right: 0;
+    }
+    /* status bar keeps Id, Title and Mask on a small screen */
+    .tb-sticky {
+      min-height: 2.3rem;
+    }
+    .tb-sticky .tb-opt,
+    .tb-sticky [data-field='for'],
+    .tb-sticky [data-field='date'] {
+      display: none;
+    }
+    .tb-sticky .tb-cell {
+      padding: 0.4rem 0.6rem;
+      gap: 0.4rem;
+    }
+    .tb-sticky .tb-big {
+      font-size: 0.88rem;
+    }
+    /* the swatch and hex say 'mask' on their own here */
+    .tb-sticky [data-field='mask'] .tb-label {
+      display: none;
+    }
+  }
+</style>

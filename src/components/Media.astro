@@ -1,0 +1,95 @@
+---
+// Renders one resolved gallery item (image or video) inside a <figure>.
+//
+// Props:
+//   media    ResolvedImage | ResolvedVideo, from src/lib/media.ts
+//   alt      string, required. Descriptive alt text (ignored for video, which
+//            gets an empty alt on its poster since <video> has no alt attr).
+//   caption  optional string. When present, rendered as a <figcaption> after
+//            an optional "Fig. N" label. When `no` is set but caption is not,
+//            just "Fig. N" is shown.
+//   no       optional 1-based figure number ("Fig. N ...").
+//   loading  "eager" | "lazy", default "lazy".
+//   sizes    <img> sizes attribute; default is a reasonable single-column guess.
+import { Picture } from 'astro:assets';
+import type { ResolvedMedia } from '../lib/media';
+
+export interface Props {
+  media: ResolvedMedia;
+  alt: string;
+  caption?: string;
+  no?: number;
+  loading?: 'eager' | 'lazy';
+  sizes?: string;
+}
+
+const { media, alt, caption, no, loading = 'lazy', sizes = '(min-width: 800px) 700px, 100vw' } = Astro.props;
+
+const candidateWidths = [480, 800, 1300, 1920, 2600];
+
+let widths: number[] = [];
+let intrinsicWidth = 0;
+if (media.kind === 'image') {
+  intrinsicWidth = media.image.width;
+  widths = candidateWidths.filter((w) => w <= intrinsicWidth);
+  if (!widths.includes(intrinsicWidth)) widths.push(intrinsicWidth);
+} else {
+  intrinsicWidth = media.poster.width;
+  widths = candidateWidths.filter((w) => w <= intrinsicWidth);
+  if (!widths.includes(intrinsicWidth)) widths.push(intrinsicWidth);
+}
+
+const hasLabel = no !== undefined;
+---
+
+<figure class="media">
+  {media.kind === 'image' ? (
+    <Picture
+      src={media.image}
+      formats={['avif', 'webp']}
+      widths={widths}
+      sizes={sizes}
+      width={media.image.width}
+      height={media.image.height}
+      alt={alt}
+      loading={loading}
+    />
+  ) : (
+    <video
+      controls
+      playsinline
+      preload="none"
+      poster={media.poster.src}
+      width={media.poster.width}
+      height={media.poster.height}
+    >
+      <source src={media.src} type="video/mp4" />
+    </video>
+  )}
+  {(hasLabel || caption) && (
+    <figcaption>
+      {hasLabel && <b>Fig. {no}</b>}
+      {caption && <span>{caption}</span>}
+    </figcaption>
+  )}
+</figure>
+
+<style>
+  .media {
+    margin: 0;
+    border: 1.5px solid currentColor;
+  }
+  .media :global(img),
+  .media video {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  figcaption {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+  }
+  figcaption b {
+    margin-right: 0.4em;
+  }
+</style>

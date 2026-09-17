@@ -1,0 +1,252 @@
+---
+// The "Boards" zone: one tall board surface whose ground is scroll-driven.
+// Each entry is a color stop (data-mask); src/scripts/mask.ts interpolates the
+// zone's --mask between neighbouring stops in Oklab as the boundary crosses the
+// middle 70% of the viewport, and eases toward it each frame.
+//
+// A silk bus runs down the left edge with a junction dot per entry, level with
+// the entry title (gold for the entry in view), and a sticky status bar along
+// the bottom of the zone reads out the live Id / Title / For / Date / Mask.
+//
+// Without JS each entry simply paints its own solid color (--m).
+// With prefers-reduced-motion the color still tracks the scroll; the easing lag
+// and the photo transforms are dropped.
+//
+// Props:
+//   sheets  Sheet[] (the featured ones, in order)
+//   letter  zone letter, default "C"
+//   sizes   <img> sizes for the entry photos
+import { Picture } from 'astro:assets';
+import Zone from './Zone.astro';
+import TitleBlock from './TitleBlock.astro';
+import type { Sheet } from '../lib/projects';
+
+export interface Props {
+  sheets: Sheet[];
+  letter?: string;
+  sizes?: string;
+}
+
+const {
+  sheets,
+  letter = 'C',
+  sizes = '(min-width: 861px) min(52vw, 780px), calc(100vw - 2rem)',
+} = Astro.props;
+
+const candidates = [480, 800, 1300, 1920, 2600];
+const widthsFor = (w: number): number[] => {
+  const list = candidates.filter((c) => c <= w);
+  if (!list.includes(w)) list.push(w);
+  return list;
+};
+const first = sheets[0];
+---
+
+<Zone
+  letter={letter}
+  board
+  mask={first.color}
+  class="boards"
+  data-mask-scope
+  aria-labelledby="boards-heading"
+>
+  <h2 class="visually-hidden" id="boards-heading">Featured boards</h2>
+  <div class="bus" aria-hidden="true"></div>
+
+  {
+    sheets.map((s, i) => {
+      const portrait = s.hero.height > s.hero.width;
+      return (
+        <article
+          class:list={['board-entry', { 'is-current': i === 0 }]}
+          data-shape={portrait ? 'portrait' : 'landscape'}
+          data-mask={s.color}
+          data-id={`${s.no}/${s.total}`}
+          data-title={s.entry.data.title}
+          data-for={s.entry.data.client}
+          data-date={s.entry.data.year ? String(s.entry.data.year) : ''}
+          style={`--m:${s.color}`}
+        >
+          <div class="entry-text">
+            <h3 class="entry-title display">
+              <a href={s.url}>{s.entry.data.title}</a>
+            </h3>
+            <p class="entry-for">{s.forSentence}</p>
+            <p class="entry-desc">{s.entry.data.description}</p>
+          </div>
+          <figure
+            class="shot"
+            style={`--natw:${s.hero.width}px;--ar:${(s.hero.width / s.hero.height).toFixed(4)}`}
+          >
+            <Picture
+              src={s.hero}
+              formats={['avif', 'webp']}
+              widths={widthsFor(s.hero.width)}
+              sizes={sizes}
+              width={s.hero.width}
+              height={s.hero.height}
+              alt={s.entry.data.hero_alt ?? `${s.entry.data.title} photo`}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          </figure>
+        </article>
+      );
+    })
+  }
+
+  <TitleBlock
+    variant="board"
+    sticky
+    live
+    title={first.entry.data.title}
+    id={`${first.no}/${first.total}`}
+    forText={first.entry.data.client}
+    date={first.entry.data.year}
+    mask={first.color}
+    label="Live title block"
+  />
+</Zone>
+
+<style>
+  .boards {
+    position: relative;
+    /* the status bar is the last thing in the zone and closes it, so no ground
+       shows under the last entry (it would still be sheet 1's color without JS) */
+    padding-bottom: 0;
+  }
+
+  /* the silk bus down the left edge */
+  .bus {
+    position: absolute;
+    left: 1rem;
+    top: 0;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--silk-line);
+  }
+
+  .board-entry {
+    position: relative;
+    min-height: calc(100vh - 6rem);
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(2rem, 4vw, 5rem);
+    align-items: center;
+    /* full bleed inside the zone so the no-JS bands reach the frame */
+    margin-inline: calc(-1 * var(--pad));
+    /* the bottom padding holds the status bar's height clear of the content */
+    padding: 2rem var(--pad) 4.5rem;
+    background: var(--m); /* no-JS: plain stacked bands */
+  }
+
+  :global(.mask-js) .board-entry {
+    background: transparent;
+  }
+
+  /* status bar, full bleed, first cell aligned to the content column */
+  .boards :global(.tb-sticky) {
+    /* full bleed: auto width so the negative margins really reach both frames */
+    margin-inline: calc(-1 * var(--pad));
+    width: auto;
+  }
+
+
+  .entry-title {
+    position: relative;
+    font-size: clamp(1.9rem, 3.6vw, 3.6rem);
+  }
+
+  /* junction dot on the bus, level with the first line of the title */
+  .entry-title::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--pad) + 1rem - 4.75px);
+    top: 0.5em;
+    margin-top: -4.75px;
+    width: 9.5px;
+    height: 9.5px;
+    border-radius: 50%;
+    background: var(--silk-line);
+  }
+
+  .board-entry.is-current .entry-title::before {
+    background: var(--gold);
+  }
+
+  .entry-title a {
+    text-decoration: none;
+  }
+
+  .entry-title a:hover {
+    color: var(--silk);
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+    text-decoration-thickness: 4px;
+    text-underline-offset: 0.12em;
+  }
+
+  .entry-for {
+    margin-top: 1.4rem;
+    color: var(--silk-dim);
+  }
+
+  .entry-desc {
+    margin-top: 0.35rem;
+    max-width: 34ch;
+    font-size: 1.1rem;
+  }
+
+  .shot {
+    margin: 0;
+    justify-self: end;
+    width: 100%;
+    /* the full right 7 of 12 columns, capped at the intrinsic width and at a
+       screen height less the status bar and air */
+    max-width: min(var(--natw), calc((100vh - 9rem) * var(--ar)));
+  }
+
+  .shot :global(img) {
+    width: 100%;
+    height: auto;
+    border: 1.5px solid var(--silk-line);
+  }
+
+  @media (max-width: 860px) {
+    .bus {
+      display: none;
+    }
+
+    .board-entry {
+      grid-template-columns: 1fr;
+      min-height: 0;
+      gap: 1.25rem;
+      padding: 2rem var(--pad) 3.5rem;
+    }
+
+    .entry-title::before {
+      display: none;
+    }
+
+    /* photo over text, capped by height so portrait heroes are not cropped */
+    .shot {
+      order: -1;
+      justify-self: start;
+      max-width: min(var(--natw), calc(58vh * var(--ar)), 100%);
+    }
+
+    .entry-for {
+      margin-top: 0.9rem;
+    }
+
+    .entry-desc {
+      max-width: none;
+      font-size: 1rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shot {
+      transform: none !important;
+    }
+  }
+</style>

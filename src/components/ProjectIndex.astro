@@ -1,0 +1,446 @@
+---
+// The sheet index: a real table of all 14 projects (columns 1-3) wired to a
+// board plate (columns 4-6). Hovering or focusing a row runs the plate's
+// soldermask color to that project's color over 350 ms in Oklab, and the hex
+// readout counts along with it (src/scripts/mask.ts, initPlateLerp).
+//
+// Without JS every row is a plain link and the plate shows sheet 1.
+// Below 861px there is no plate: rows get a 64px thumbnail and a 6px bar in the
+// project's mask color at the row's left edge.
+//
+// Props:
+//   sheets  Sheet[] from getSheets()
+//   sizes   <img> sizes for the plate photo (default assumes half the sheet)
+import { Picture } from 'astro:assets';
+import type { Sheet } from '../lib/projects';
+import { deepMask } from '../scripts/mask';
+
+export interface Props {
+  sheets: Sheet[];
+  sizes?: string;
+}
+
+const { sheets, sizes = '(min-width: 861px) min(44vw, 660px), 1px' } = Astro.props;
+
+const candidates = [480, 800, 1300, 1920, 2600];
+const widthsFor = (w: number): number[] => {
+  const list = candidates.filter((c) => c <= w);
+  if (!list.includes(w)) list.push(w);
+  return list;
+};
+const first = sheets[0];
+---
+
+<div class="index six" data-index>
+  <div class="index-table-wrap">
+    <table class="index-table" role="table">
+      <caption class="visually-hidden">All {sheets.length} project sheets</caption>
+      <thead class="index-head" role="rowgroup">
+        <tr role="row">
+          <th class="th" scope="col" role="columnheader">No.</th>
+          <th class="th th-thumb" scope="col" role="columnheader">Photo</th>
+          <th class="th" scope="col" role="columnheader">Title</th>
+          <th class="th" scope="col" role="columnheader">For</th>
+          <th class="th th-year" scope="col" role="columnheader">Year</th>
+        </tr>
+      </thead>
+      <tbody class="index-body" role="rowgroup">
+        {
+          sheets.map((s, i) => (
+            <tr
+              class:list={['row', { 'is-active': i === 0 }]}
+              role="row"
+              data-row
+              data-mask={s.color}
+              style={`--row-mask:${s.color}`}
+            >
+              <td class="td cell-no" role="cell">{s.no}</td>
+              <td class="td cell-thumb" role="cell">
+                <Picture
+                  class="thumb"
+                  src={s.thumb}
+                  formats={['avif', 'webp']}
+                  widths={widthsFor(Math.min(128, s.thumb.width))}
+                  sizes="64px"
+                  width={s.thumb.width}
+                  height={s.thumb.height}
+                  alt=""
+                  loading="lazy"
+                />
+              </td>
+              <td class="td cell-title" role="cell">
+                <a class="row-link" href={s.url}>
+                  {s.entry.data.title}
+                </a>
+              </td>
+              <td class="td cell-for" role="cell">{s.entry.data.client}</td>
+              <td class="td cell-year" role="cell">{s.entry.data.year ?? ''}</td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="plate-wrap">
+    <div
+      class="plate board"
+      data-plate
+      style={`--mask:${first.color};--mask-deep:${deepMask(first.color)}`}
+    >
+      {
+        sheets.map((s, i) => {
+          const portrait = s.hero.height > s.hero.width;
+          return (
+            <figure
+              class="plate-item"
+              data-plate-item
+              data-shape={portrait ? 'portrait' : 'landscape'}
+              hidden={i !== 0}
+            >
+              <div class="plate-view">
+                <Picture
+                  class="plate-img"
+                  src={s.hero}
+                  formats={['avif', 'webp']}
+                  widths={widthsFor(s.hero.width)}
+                  sizes={sizes}
+                  width={s.hero.width}
+                  height={s.hero.height}
+                  alt={s.entry.data.hero_alt ?? `${s.entry.data.title} photo`}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  style={`view-transition-name: plate-${s.id}`}
+                />
+              </div>
+              <figcaption class="plate-cap">
+                <span class="plate-no">Sheet {s.no}/{s.total}</span>
+                <span class="plate-title display">{s.entry.data.title}</span>
+                <span class="plate-desc">{s.entry.data.description}</span>
+              </figcaption>
+            </figure>
+          );
+        })
+      }
+      <p class="plate-readout">
+        <span class="plate-readout-label">Mask</span>
+        <span class="plate-swatch" aria-hidden="true"></span>
+        <span class="plate-hex" data-hex>{first.color.toUpperCase()}</span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .index {
+    align-items: start;
+  }
+
+  /* ---- table, columns 1-3 ---- */
+  .index-table-wrap {
+    grid-column: 1 / 4;
+    margin-right: calc(-1 * var(--gap));
+  }
+
+  .index-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+
+  .th {
+    text-align: left;
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--label);
+    padding: 0 0.5rem 0.4rem;
+    border-bottom: 1px solid var(--fg);
+  }
+
+  .th-thumb {
+    display: none;
+  }
+
+  .th-year {
+    text-align: right;
+  }
+
+  .td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: baseline;
+  }
+
+  .row {
+    cursor: pointer;
+  }
+
+  .cell-no,
+  .cell-year {
+    font-family: var(--font-num);
+    font-size: 0.85rem;
+    color: var(--label);
+    white-space: nowrap;
+  }
+
+  .cell-no {
+    width: 2.5rem;
+  }
+
+  .cell-year {
+    position: relative;
+    width: 4rem;
+    text-align: right;
+  }
+
+  .cell-thumb {
+    display: none;
+  }
+
+  .cell-for {
+    color: var(--fg-dim);
+    font-size: 0.875rem;
+  }
+
+  .row-link {
+    font-weight: 700;
+    text-decoration-color: transparent;
+  }
+
+  .row-link:hover {
+    text-decoration-color: var(--mark);
+  }
+
+  /* the active row is wired to the plate: its rule turns green, runs into the
+     bus at the plate's left edge, junction dot at the join */
+  .is-active .td {
+    border-bottom: 2px solid var(--green);
+    padding-bottom: calc(0.5rem - 1px);
+  }
+
+  .is-active .row-link {
+    color: var(--green);
+  }
+
+  .is-active .cell-year::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    bottom: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  /* ---- board plate, columns 4-6 ---- */
+  .plate-wrap {
+    grid-column: 4 / 7;
+    border-left: 1px solid var(--green);
+    padding-left: var(--gap);
+    align-self: stretch;
+  }
+
+  .plate {
+    position: sticky;
+    top: 1rem;
+    padding: 1rem 1.25rem 1.1rem;
+    /* one height for every row, so hovering down the index does not jiggle */
+    min-height: 34rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    /* set by initPlateLerp; this is the no-JS / first-paint state */
+    transition: none;
+  }
+
+  .plate-item {
+    margin: 0;
+  }
+
+  .plate-item[hidden],
+  .plate-item[data-shape][hidden] {
+    display: none;
+  }
+
+  .plate-view {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .plate-img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: clamp(240px, 27vw, 380px);
+    border: 1.5px solid var(--silk-line);
+  }
+
+  .plate-cap {
+    margin-top: 0.85rem;
+  }
+
+  .plate-no {
+    display: block;
+    font-family: var(--font-num);
+    font-size: 0.8rem;
+    color: var(--silk-dim);
+  }
+
+  .plate-title {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: clamp(1.15rem, 1.7vw, 1.6rem);
+  }
+
+  .plate-desc {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.95rem;
+    color: var(--silk-dim);
+    max-width: 46ch;
+  }
+
+  /* portrait heroes sit beside their caption so the plate has no dead space */
+  .plate-item[data-shape='portrait'] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 1.1rem;
+    align-items: start;
+  }
+
+  .plate-item[data-shape='portrait'] .plate-img {
+    max-height: clamp(280px, 32vw, 440px);
+  }
+
+  .plate-item[data-shape='portrait'] .plate-cap {
+    margin-top: 0;
+  }
+
+  /* legend strip along the bottom of the plate: gold reads cleanly on the deep
+     fill, and it gives the plate an edge like a board's silkscreen label */
+  .plate-readout {
+    margin: 1rem -1.25rem -1.1rem;
+    padding: 0.4rem 1.25rem 0.45rem;
+    background: var(--mask-deep);
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .plate-readout-label {
+    color: var(--silk-dim);
+  }
+
+  .plate-swatch {
+    width: 0.75em;
+    height: 0.75em;
+    align-self: center;
+    background: var(--mask);
+    border: 1.5px solid var(--silk);
+  }
+
+  .plate-hex {
+    font-family: var(--font-num);
+    color: var(--gold);
+  }
+
+  /* ---- narrow: no plate. Rows carry a thumb and a mask bar. ---- */
+  @media (max-width: 860px) {
+    .index-table-wrap {
+      grid-column: auto;
+      margin-right: 0;
+    }
+
+    .plate-wrap {
+      display: none;
+    }
+
+    .index-head {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .index-table,
+    .index-body {
+      display: block;
+    }
+
+    .row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.4rem 64px minmax(0, 1fr) auto;
+      grid-template-areas:
+        'no thumb title year'
+        'no thumb for for';
+      column-gap: 0.6rem;
+      align-items: start;
+      padding: 0.6rem 0 0.6rem 0.9rem;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .row::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.6rem;
+      bottom: 0.6rem;
+      width: 6px;
+      background: var(--row-mask);
+    }
+
+    .td {
+      display: block;
+      padding: 0;
+      border: 0;
+    }
+
+    .cell-no {
+      grid-area: no;
+      width: auto;
+      padding-top: 0.1rem;
+    }
+
+    .cell-thumb {
+      grid-area: thumb;
+      display: block;
+    }
+
+    .thumb {
+      width: 64px;
+      height: 48px;
+      object-fit: cover;
+      border: 1px solid var(--fg);
+    }
+
+    .cell-title {
+      grid-area: title;
+      line-height: 1.3;
+    }
+
+    .cell-for {
+      grid-area: for;
+    }
+
+    .cell-year {
+      grid-area: year;
+      width: auto;
+    }
+
+    .is-active .td {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .is-active .row-link {
+      color: inherit;
+    }
+
+    .is-active .cell-year::after {
+      display: none;
+    }
+  }
+</style>

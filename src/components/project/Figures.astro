@@ -1,0 +1,124 @@
+---
+// Zone B of a project sheet: the figures, packed at build time into justified
+// rows of equal height (pack.ts). The row, not the figure, carries the cap:
+// a row is never wider than `maxHeight * sumAr`, so no photo is ever drawn
+// wider than it really is, and a row of small photos just stops short of the
+// container instead of blowing them up.
+//
+// On narrow screens rows stack, except a pair of portrait figures, which keeps
+// its two columns.
+//
+// Props:
+//   figures  ProjectFigure[] in display order (hero first)
+import Figure from './Figure.astro';
+import { packRows, type ProjectFigure } from './pack';
+
+export interface Props {
+  figures: ProjectFigure[];
+  /** view-transition-name for the hero figure (the index plate's photo name) */
+  heroVt?: string;
+}
+
+const { figures, heroVt } = Astro.props;
+const rows = packRows(figures);
+
+// Widest the figure area ever gets: sheet 1480 - strip 2x22 - frame 2x2 - pad 2x32.
+const CONTENT = 1368;
+const GAP = 19.2; // 1.2rem
+
+/** Rendered CSS width of one figure on a wide screen, for an honest `sizes`. */
+function widthOn(
+  desktopRow: number,
+  gaps: number,
+  sumAr: number,
+  fig: ProjectFigure,
+): number {
+  const inner = Math.min(desktopRow, CONTENT) - gaps * GAP;
+  return Math.min(fig.natWidth, Math.round((inner * fig.ar) / sumAr));
+}
+---
+
+<div class="figs">
+  {
+    rows.map((row, ri) => {
+      const gaps = row.items.length - 1;
+      const natRow = row.maxHeight * row.sumAr;
+      const desktopRow = Math.min(natRow + gaps * GAP, CONTENT * row.frac);
+      const pair =
+        row.items.length === 2 && row.items.every((i) => i.ar < 1) ? 'portrait' : undefined;
+      // A leftover figure only gets its caption beside it when it has one to
+      // put there; otherwise a stray "Fig. 5" would float in empty space.
+      const beside = row.lone && Boolean(row.items[0].caption);
+      return (
+        <div
+          class="fig-row"
+          data-pair={pair}
+          data-beside={beside ? '' : undefined}
+          style={`--row-natw:${Math.round(natRow)}px;--row-gaps:${gaps};--row-frac:${row.frac.toFixed(3)}`}
+        >
+          {row.items.map((fig) => {
+            const w = beside
+              ? Math.min(fig.natWidth, CONTENT - 384)
+              : widthOn(desktopRow, gaps, row.sumAr, fig);
+            const narrow = pair ? 'calc(50vw - 1.5rem)' : 'calc(100vw - 2rem)';
+            return (
+              <Figure
+                figure={fig}
+                grow={(10 * fig.ar) / row.sumAr}
+                beside={beside}
+                loading={ri === 0 ? 'eager' : 'lazy'}
+                vt={fig.hero ? heroVt : undefined}
+                sizes={`(min-width: 861px) ${w}px, ${narrow}`}
+              />
+            );
+          })}
+        </div>
+      );
+    })
+  }
+</div>
+
+<style>
+  .figs {
+    --fig-gap: 1.2rem;
+    display: grid;
+    gap: 2.4rem;
+  }
+
+  .fig-row {
+    display: flex;
+    gap: var(--fig-gap);
+    align-items: flex-start;
+    /* the row stops at the width its shortest photo can honestly fill, and a
+       short trailing row keeps its share (--row-frac) instead of stretching */
+    max-width: min(
+      calc(var(--row-natw) + var(--row-gaps) * var(--fig-gap)),
+      calc(100% * var(--row-frac))
+    );
+  }
+
+  /* a captioned leftover figure needs room for the caption column beside it */
+  .fig-row[data-beside] {
+    max-width: 100%;
+  }
+
+  @media (max-width: 860px) {
+    .figs {
+      gap: 2rem;
+    }
+
+    .fig-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2rem;
+      max-width: 100%;
+    }
+
+    /* two portraits still read as a pair on a phone */
+    .fig-row[data-pair='portrait'] {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--fig-gap);
+      align-items: start;
+    }
+  }
+</style>

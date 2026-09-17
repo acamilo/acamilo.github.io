@@ -1,0 +1,169 @@
+---
+// One numbered figure on a project sheet: an image or a video, a silk 1.5px
+// border, "Fig. N" and the caption when there is one.
+//
+// An image figure is a link to the largest generated copy of itself, so it
+// works without JavaScript; with JavaScript the page's <Lightbox> intercepts
+// the click and opens the same file in a native <dialog>.
+//
+// The figure is a flex item sized by its aspect ratio (--ar) and capped at its
+// intrinsic width (--natw): the row it sits in decides the height, and the row
+// never asks for more height than the shortest photo in it can give.
+//
+// Props:
+//   figure   ProjectFigure (see pack.ts)
+//   sizes    <img> sizes attribute, computed by <Figures>
+//   beside   caption sits beside the photo instead of under it (lone figure)
+//   loading  "eager" | "lazy"
+//   vt       view-transition-name for the photo (the hero carries the index
+//            plate's name, so the plate photo flies into Fig. 1)
+import { Picture, getImage } from 'astro:assets';
+import type { ProjectFigure } from './pack';
+
+export interface Props {
+  figure: ProjectFigure;
+  sizes: string;
+  /** share of the row this figure takes, normalised by <Figures> so that a
+      row's factors always add up to 10 (grow factors summing to < 1 would
+      leave a row short) */
+  grow: number;
+  beside?: boolean;
+  loading?: 'eager' | 'lazy';
+  vt?: string;
+}
+
+const { figure, sizes, grow, beside = false, loading = 'lazy', vt } = Astro.props;
+const { media, no, caption, alt, ar, natWidth, natHeight } = figure;
+
+const candidates = [480, 800, 1300, 1920, 2600];
+const widths = candidates.filter((w) => w <= natWidth);
+if (!widths.includes(natWidth)) widths.push(natWidth);
+
+// the file the lightbox (and a no-JS click) opens: the largest copy we make
+let full: { src: string; width: number; height: number } | undefined;
+if (media.kind === 'image') {
+  const width = Math.min(natWidth, 2600);
+  const generated = await getImage({ src: media.image, width, format: 'webp' });
+  full = { src: generated.src, width, height: Math.round(width / ar) };
+}
+
+const style = `--ar:${ar.toFixed(4)};--natw:${natWidth}px;--grow:${grow.toFixed(4)}`;
+---
+
+<figure class:list={['fig', { 'fig-beside': beside }]} style={style}>
+  {
+    media.kind === 'image' && full ? (
+      <a
+        class="fig-link"
+        href={full.src}
+        data-lb
+        data-no={String(no)}
+        data-cap={caption ?? ''}
+        data-alt={alt}
+        data-w={String(full.width)}
+        data-h={String(full.height)}
+      >
+        <Picture
+          src={media.image}
+          formats={['avif', 'webp']}
+          widths={widths}
+          sizes={sizes}
+          width={natWidth}
+          height={natHeight}
+          alt={alt}
+          loading={loading}
+          style={vt ? `view-transition-name: ${vt}` : undefined}
+        />
+      </a>
+    ) : media.kind === 'video' ? (
+      <video
+        controls
+        playsinline
+        preload="none"
+        poster={media.poster.src}
+        width={natWidth}
+        height={natHeight}
+      >
+        <source src={media.src} type="video/mp4" />
+        <a href={media.src}>Download the video</a>
+      </video>
+    ) : null
+  }
+  <figcaption class="fig-cap">
+    <b class="fig-no">Fig. {no}</b>
+    {caption && <span>{caption}</span>}
+  </figcaption>
+</figure>
+
+<style>
+  .fig {
+    margin: 0;
+    /* width in the row is proportional to the aspect ratio, so every figure in
+       a row ends up the same height; never wider than the photo really is */
+    flex: var(--grow, var(--ar)) 1 0;
+    min-width: 0;
+    max-width: var(--natw);
+  }
+
+  .fig-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .fig :global(img),
+  .fig video {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1.5px solid var(--silk-line);
+    background: var(--mask-deep);
+  }
+
+  .fig-link:hover :global(img) {
+    border-color: var(--gold);
+  }
+
+  .fig-cap {
+    margin-top: 0.55rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--fg-dim);
+    max-width: 52ch;
+  }
+
+  .fig-no {
+    font-family: var(--font-num);
+    font-weight: 400;
+    color: var(--fg);
+    margin-right: 0.6em;
+    white-space: nowrap;
+  }
+
+  /* a lone leftover figure: intrinsic width, caption beside it */
+  .fig-beside {
+    display: grid;
+    grid-template-columns: minmax(0, var(--natw)) minmax(12rem, 24rem);
+    gap: 1.2rem;
+    align-items: end;
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .fig-beside .fig-cap {
+    margin-top: 0;
+  }
+
+  @media (max-width: 860px) {
+    .fig {
+      max-width: min(100%, var(--natw));
+    }
+
+    .fig-beside {
+      display: block;
+    }
+
+    .fig-beside .fig-cap {
+      margin-top: 0.55rem;
+    }
+  }
+</style>

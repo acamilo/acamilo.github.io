@@ -1,0 +1,65 @@
+---
+// Primary navigation. Works on both surfaces (colors come from the surface
+// tokens). The current page's link is marked with aria-current and keeps its
+// underline; the others underline on hover.
+//
+// Props:
+//   current  'about' | 'work' | 'log' | undefined
+//   brand    optional text for a "back to /" link before the links (used on
+//            pages where the h1 is not the name)
+export interface Props {
+  current?: 'about' | 'work' | 'log';
+  brand?: string;
+}
+
+const { current, brand } = Astro.props;
+
+const links: { href: string; label: string; key?: Props['current']; rel?: string }[] = [
+  { href: '/about/', label: 'About', key: 'about' },
+  { href: '/work/', label: 'Work', key: 'work' },
+  { href: '/log/', label: 'Log', key: 'log' },
+  { href: 'https://github.com/acamilo', label: 'GitHub', rel: 'me' },
+];
+---
+
+<nav class="nav" aria-label="Primary">
+  {brand && <a class="nav-brand" href="/">{brand}</a>}
+  {
+    links.map((l) => (
+      <a
+        class:list={['nav-link', { 'nav-current': l.key && l.key === current }]}
+        href={l.href}
+        rel={l.rel}
+        aria-current={l.key && l.key === current ? 'page' : undefined}
+      >
+        {l.label}
+      </a>
+    ))
+  }
+</nav>
+
+<style>
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1.75rem;
+  }
+  .nav-brand {
+    font-weight: 700;
+    text-decoration-color: transparent;
+  }
+  .nav-brand:hover {
+    text-decoration-color: var(--mark);
+  }
+  .nav-link {
+    text-decoration-color: transparent;
+  }
+  .nav-link:hover {
+    text-decoration-color: var(--mark);
+  }
+  .nav-current {
+    text-decoration-color: var(--mark);
+    font-weight: 700;
+  }
+</style>
