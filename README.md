@@ -96,6 +96,17 @@ The build job also runs `npm run check`; deployment requires both the Astro buil
 and type/template diagnostics to succeed. See `docs/CONTENT.md` for the writing
 workflow and the first-deployment handoff.
 
+## Analytics
+
+Cloudflare Web Analytics is installed through `src/components/WebAnalytics.astro`
+in the shared layout. It loads only in production builds served from
+`acamilo.github.io`; development and local production previews do not send data.
+The beacon token in that component is a public site identifier, not a secret.
+
+View reports in the Cloudflare dashboard under **Web Analytics → acamilo.github.io**.
+This integration collects Cloudflare's standard traffic and performance metrics;
+it does not add custom click-event tracking.
+
 ## Structure
 
 | Path | What |

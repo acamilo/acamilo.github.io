@@ -1,0 +1,11 @@
+<script>
+  // The beacon token is a public site identifier, not an API credential.
+  // Check the browser hostname too: a production build can run in local preview.
+  if (import.meta.env.PROD && window.location.hostname === 'acamilo.github.io') {
+    const beacon = document.createElement('script');
+    beacon.type = 'module';
+    beacon.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    beacon.dataset.cfBeacon = JSON.stringify({ token: 'ef2eb146e2244341a22431edc0a8ec0e' });
+    document.body.appendChild(beacon);
+  }
+</script>
