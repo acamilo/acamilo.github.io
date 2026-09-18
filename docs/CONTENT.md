@@ -84,16 +84,37 @@ Once the GitHub deployment is connected, pushes to `main` build and publish the 
 
 ## First deployment handoff
 
-The rebuild is prepared for local `main`. At this handoff, this checkout has no
-Git remote configured. The intended site URL is `https://acamilo.github.io`.
+The rebuild is on local `main`, with `origin` pointing to
+`git@github.com:acamilo/acamilo.github.io.git`. The old `origin/master` history
+(through `5c6e8ae`) is preserved as a parent of the integration merge. That merge
+keeps the Astro source tree, rather than bringing the old generated Hugo files
+back into the current checkout. No force push is needed.
 
-1. Inspect the existing `acamilo/acamilo.github.io` repository and its default
-   branch/history before integrating this new local history.
-2. Connect the remote and integrate the rebuild with the chosen remote branch.
-3. Set repository **Settings → Pages → Source → GitHub Actions**.
-4. Push the prepared `main` branch. The Deploy workflow builds on Node 24,
-   runs type/template diagnostics, then publishes through GitHub Pages.
-5. Check the workflow result and review the live site, RSS, and project links.
+GitHub still uses `master` as its default branch and legacy Pages source. Actions
+are enabled and the `github-pages` environment has no branch restrictions.
+Nothing has been pushed or changed in the remote settings during preparation.
+
+When ready to publish:
+
+1. Fetch `origin` again and check for any changes since the integration.
+2. Set repository **Settings → Pages → Source → GitHub Actions**.
+3. Run `git push -u origin main`. This creates remote `main` and triggers Deploy.
+4. Set the repository's default branch to `main`.
+5. Check the workflow result and review `https://acamilo.github.io`, RSS, and
+   project links. The workflow builds on Node 24, runs type/template diagnostics,
+   then publishes through GitHub Pages.
+
+The GitHub CLI can perform the settings changes and monitor deployment:
+
+```sh
+gh api --method PUT repos/acamilo/acamilo.github.io/pages -f build_type=workflow
+git push -u origin main
+gh repo edit acamilo/acamilo.github.io --default-branch main
+gh run list --repo acamilo/acamilo.github.io --workflow deploy.yml --branch main
+```
+
+Keep remote `master` available as the old published version until the new site
+has been reviewed.
 
 Content to review before the first publication:
 

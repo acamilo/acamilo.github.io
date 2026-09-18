@@ -16,10 +16,12 @@ still the 2021 one.
   two dice-roller videos). Write pages or leave them out.
 - **Dark scheme.** The paper surface is light only. The old site followed the system
   setting. Decide whether a dark paper variant is wanted.
-- **Push.** Local `main` is prepared for content work. No remote is configured.
-  Inspect and integrate with the existing `acamilo.github.io` repository history, then
-  set Settings > Pages > Source to "GitHub Actions" before publishing. See
-  `docs/CONTENT.md` for the deployment handoff.
+- **Push.** Local `main` includes the old `origin/master` history via an integration
+  merge, retaining the Astro source tree. `origin` is connected to the existing GitHub
+  repository. Switch Pages to GitHub Actions, push `main`, and make it the default
+  branch when ready to publish. Exact commands are in `docs/CONTENT.md`.
+- **Old URLs.** The former `/portfolio/<slug>/` pages are now `/work/<slug>/`.
+  Add redirects if existing bookmarks and inbound links should keep working.
 
 ## Design
 
