@@ -16,9 +16,7 @@ It's built with Astro and generates static HTML. A little JavaScript handles
 the project previews, color transitions, and photo viewer. Posts and project
 write-ups are still plain Markdown files with YAML front matter.
 
-Most of the code was written with AI coding assistants. I set the direction
-and reviewed the output, including the details that make it feel like a drawing
-sheet rather than a portfolio template.
+Most of the code was written with AI coding assistants.
 
 The deployment workflow is set up for GitHub Actions to build the site and
 publish it to GitHub Pages. Once connected, publishing a post will be a Markdown
