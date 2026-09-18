@@ -97,7 +97,6 @@ Git remote configured. The intended site URL is `https://acamilo.github.io`.
 
 Content to review before the first publication:
 
-- The existing “Rebuilt the site” post still describes Jekyll.
 - Missing years: `hornbot`, `chdk-ptp-java`, and `wii-chuck`.
 - Project mask colors and figure captions; see `docs/TODO.md`.
 - Decide whether any of the five media-only projects in `_orphans/` need pages.

@@ -11,8 +11,6 @@ still the 2021 one.
   guesses from thumbnails. Fix them in each project's `color:`.
 - **Captions.** Only `mri` has figure captions, and they were written from what is visible
   in the photos. Check them. Add `captions:` to other projects as wanted.
-- **"Rebuilt the site" log post** still says the site is Jekyll, plain CSS, no JavaScript,
-  and follows the system light or dark setting. None of that is true now.
 - **Five projects with media but no page:** dice-roller, gameboy, fig-elevation,
   kilian-box, supercon-2019. Their files are in `_orphans/` (gitignored, 211 MB, mostly
   two dice-roller videos). Write pages or leave them out.
